@@ -17,7 +17,7 @@
     "module": "node20",
     "outDir": "./dist",
     "rootDir": "./src",
-    "moduleResolution": "node16"
+    "moduleResolution": "node16",
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
