@@ -3,19 +3,31 @@
   "version": "0.1.0",
   "description": "A TypeScript-based HTTP server library with CLI support",
   "type": "module",
-  "module": "dist/lib/index.mjs",
-  "types": "dist/lib/index.d.ts",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/lib/index.js",
-      "types": "./dist/lib/index.d.ts"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./pagination": {
+      "import": "./dist/lib/pagination/index.js",
+      "types": "./dist/lib/pagination/index.d.ts"
+    },
+    "./auth": {
+      "import": "./dist/lib/auth/index.js",
+      "types": "./dist/lib/auth/index.d.ts"
+    },
+    "./uac": {
+      "import": "./dist/lib/uac/index.js",
+      "types": "./dist/lib/uac/index.d.ts"
     }
   },
   "bin": {
     "fsarch-server": "./dist/bin/cli.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.esm.json",
+    "build": "tsc -p tsconfig.json",
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
     "cli": "node bin/cli.js",
@@ -43,11 +55,13 @@
     "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "commander": "^12.0.0",
     "eslint": "^8.56.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@nestjs/cli": "^11.0.23",
     "@nestjs/common": "^11.1.27",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.27",

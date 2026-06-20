@@ -1,2 +1,1 @@
-export * from './lib/FsArchApp.js';
-
+export { FsArchAppBuilder } from './lib/FsArchApp.js';

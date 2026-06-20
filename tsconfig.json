@@ -14,11 +14,11 @@
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "module": "ESNext",
+    "module": "node20",
     "outDir": "./dist",
     "rootDir": "./src",
-    "moduleResolution": "bundler"
+    "moduleResolution": "node16"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "bin", "**/*.test.ts", "**/*.spec.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }
