@@ -8,6 +8,6 @@ export {
 } from './pagination-result.dto.js';
 
 export type {
-  TPaginationResult,
-  TPaginationResultMetadata,
+  IPaginationResult,
+  IPaginationResultMetadata,
 } from './pagination-result.type.js';

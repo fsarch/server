@@ -1,7 +1,7 @@
-import { PaginationResult, PaginationResultMetadata } from './pagination-result.type.js';
+import { IPaginationResult, IPaginationResultMetadata } from './pagination-result.type.js';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class PaginationResultMetaDto implements PaginationResultMetadata {
+export class PaginationResultMetaDto implements IPaginationResultMetadata {
   @ApiProperty({
     description: 'Current page (1-based)',
     example: 1,
@@ -27,7 +27,7 @@ export class PaginationResultMetaDto implements PaginationResultMetadata {
   totalPages: number = 0;
 }
 
-export class PaginationResultDto<T> implements PaginationResult<T> {
+export class PaginationResultDto<T> implements IPaginationResult<T> {
   @ApiProperty({
     description: 'Page data array',
     isArray: true,

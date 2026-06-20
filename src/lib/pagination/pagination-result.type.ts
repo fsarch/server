@@ -1,11 +1,11 @@
-export type TPaginationResultMetadata = {
+export interface IPaginationResultMetadata {
   currentPage: number;
   totalPages: number;
   pageSize: number;
   totalItems: number;
-};
+}
 
-export type TPaginationResult<T> = {
+export interface IPaginationResult<T> {
   data: Array<T>;
-  metadata: TPaginationResultMetadata;
-};
+  metadata: IPaginationResultMetadata;
+}
