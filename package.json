@@ -3,22 +3,16 @@
   "version": "0.1.0",
   "description": "A TypeScript-based HTTP server library with CLI support",
   "type": "module",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "module": "dist/lib/index.mjs",
+  "types": "dist/lib/index.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
-    },
-    "./cli": {
-      "require": "./dist/cli/index.js",
-      "import": "./dist/cli/index.mjs"
-    },
-    "./package.json": "./package.json"
+      "import": "./dist/lib/index.js",
+      "types": "./dist/lib/index.d.ts"
+    }
   },
   "bin": {
-    "fsarch-server": "./bin/cli.js"
+    "fsarch-server": "./dist/bin/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.esm.json",
