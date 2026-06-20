@@ -1,0 +1,74 @@
+{
+  "name": "@fsarch/server",
+  "version": "0.1.0",
+  "description": "A TypeScript-based HTTP server library with CLI support",
+  "type": "module",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./cli": {
+      "require": "./dist/cli/index.js",
+      "import": "./dist/cli/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "fsarch-server": "./bin/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.esm.json",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "cli": "node bin/cli.js",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "server",
+    "typescript",
+    "cli",
+    "nodejs",
+    "fsarch"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.27",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.1.27",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/swagger": "^11.4.4",
+    "@nestjs/typeorm": "^11.0.2",
+    "express": "^5.2.1",
+    "joi": "^18.2.3",
+    "jose": "^6.2.3",
+    "js-yaml": "^5.0.0",
+    "pino": "^10.3.1",
+    "serialize-error": "^13.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fsarch/server.git"
+  }
+}

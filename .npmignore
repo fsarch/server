@@ -1,0 +1,8 @@
+src/
+bin/cli.ts
+scripts/
+tsconfig.json
+tsconfig.esm.json
+.eslintrc.json
+.gitignore
+*.md
