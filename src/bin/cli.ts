@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { program } from 'commander';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
@@ -18,7 +18,7 @@ try {
   // Versuche, den Pfad zur @nestjs/cli Binärdatei aufzulösen
   const cliPkgPath = require.resolve('@nestjs/cli/package.json');
   const cliDir = dirname(cliPkgPath);
-  // Die nest.js Binärdatei ist normalerweise in ../@nestjs/cli/bin/nest.js
+  // Die nest.js Binärdatei ist normalerweise in bin/nest.js
   // von der package.json aus
   nestCliPath = resolve(cliDir, 'bin', 'nest.js');
 } catch {
@@ -26,58 +26,80 @@ try {
   nestCliPath = resolve(__dirname, '../../../../node_modules/.bin/nest');
 }
 
-program
-  .name('fsarch-server')
-  .description('CLI to build and start NestJS applications')
-  .version('0.1.0');
-
-program
-  .command('start')
-  .description('Start a NestJS application in the current directory')
-  .action(() => {
-    console.log('Starting NestJS application...');
-
-    const startProcess = spawn('node', [nestCliPath, 'start', '--watch'], {
-      stdio: 'inherit',
-      cwd: process.cwd()
-    });
-
-    startProcess.on('error', (error) => {
-      console.error('Error starting NestJS application:', error.message);
-      process.exit(1);
-    });
-
-    startProcess.on('close', (code) => {
-      if (code !== 0) {
-        console.error(`NestJS application exited with code ${code}`);
-        process.exit(code || 1);
-      }
-    });
+// Exportierbare Funktion zum Testen
+export const executeBuild = (cwd?: string): ChildProcess => {
+  console.log('Building NestJS application...');
+  
+  const buildProcess = spawn('node', [nestCliPath, 'build'], {
+    stdio: 'inherit',
+    cwd: cwd || process.cwd()
   });
 
-program
-  .command('build')
-  .description('Build a NestJS application in the current directory')
-  .action(() => {
-    console.log('Building NestJS application...');
-
-    const buildProcess = spawn('node', [nestCliPath, 'build'], {
-      stdio: 'inherit',
-      cwd: process.cwd()
-    });
-
-    buildProcess.on('error', (error) => {
-      console.error('Error building NestJS application:', error.message);
-      process.exit(1);
-    });
-
-    buildProcess.on('close', (code) => {
-      if (code !== 0) {
-        console.error(`Build failed with code ${code}`);
-        process.exit(code || 1);
-      }
-      console.log('Build completed successfully');
-    });
+  buildProcess.on('error', (error) => {
+    console.error('Error building NestJS application:', error.message);
+    process.exit(1);
   });
 
-program.parse(process.argv);
+  buildProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.error(`Build failed with code ${code}`);
+      process.exit(code || 1);
+    }
+    console.log('Build completed successfully');
+  });
+
+  return buildProcess;
+};
+
+// Exportierbare Funktion zum Testen
+export const executeStart = (cwd?: string): ChildProcess => {
+  console.log('Starting NestJS application...');
+  
+  const startProcess = spawn('node', [nestCliPath, 'start', '--watch'], {
+    stdio: 'inherit',
+    cwd: cwd || process.cwd()
+  });
+
+  startProcess.on('error', (error) => {
+    console.error('Error starting NestJS application:', error.message);
+    process.exit(1);
+  });
+
+  startProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.error(`NestJS application exited with code ${code}`);
+      process.exit(code || 1);
+    }
+  });
+
+  return startProcess;
+};
+
+// Export nestCliPath für Tests
+export { nestCliPath };
+
+// CLI-Setup - nur ausführen wenn direkt aufgerufen
+const isMainModule = import.meta.url.endsWith(process.argv[1]);
+
+if (isMainModule) {
+  program
+    .name('fsarch-server')
+    .description('CLI to build and start NestJS applications')
+    .version('0.1.0');
+
+  program
+    .command('start')
+    .description('Start a NestJS application in the current directory')
+    .action(() => {
+      executeStart();
+    });
+
+  program
+    .command('build')
+    .description('Build a NestJS application in the current directory')
+    .action(() => {
+      executeBuild();
+    });
+
+  program.parse(process.argv);
+}
