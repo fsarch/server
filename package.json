@@ -78,5 +78,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/fsarch/server.git"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
