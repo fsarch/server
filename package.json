@@ -21,6 +21,10 @@
     "./uac": {
       "import": "./dist/lib/uac/index.js",
       "types": "./dist/lib/uac/index.d.ts"
+    },
+    "./configuration": {
+      "import": "./dist/lib/configuration/index.js",
+      "types": "./dist/lib/configuration/index.d.ts"
     }
   },
   "bin": {
