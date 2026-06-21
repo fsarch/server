@@ -29,7 +29,7 @@ try {
 // Exportierbare Funktion zum Testen
 export const executeBuild = (cwd?: string): ChildProcess => {
   console.log('Building NestJS application...');
-  
+
   const buildProcess = spawn('node', [nestCliPath, 'build'], {
     stdio: 'inherit',
     cwd: cwd || process.cwd()
@@ -54,7 +54,7 @@ export const executeBuild = (cwd?: string): ChildProcess => {
 // Exportierbare Funktion zum Testen
 export const executeStart = (cwd?: string): ChildProcess => {
   console.log('Starting NestJS application...');
-  
+
   const startProcess = spawn('node', [nestCliPath, 'start', '--watch'], {
     stdio: 'inherit',
     cwd: cwd || process.cwd()
@@ -79,27 +79,23 @@ export const executeStart = (cwd?: string): ChildProcess => {
 export { nestCliPath };
 
 // CLI-Setup - nur ausführen wenn direkt aufgerufen
-const isMainModule = import.meta.url.endsWith(process.argv[1]);
+program
+  .name('fsarch-server')
+  .description('CLI to build and start NestJS applications')
+  .version('0.1.0');
 
-if (isMainModule) {
-  program
-    .name('fsarch-server')
-    .description('CLI to build and start NestJS applications')
-    .version('0.1.0');
+program
+  .command('start')
+  .description('Start a NestJS application in the current directory')
+  .action(() => {
+    executeStart();
+  });
 
-  program
-    .command('start')
-    .description('Start a NestJS application in the current directory')
-    .action(() => {
-      executeStart();
-    });
+program
+  .command('build')
+  .description('Build a NestJS application in the current directory')
+  .action(() => {
+    executeBuild();
+  });
 
-  program
-    .command('build')
-    .description('Build a NestJS application in the current directory')
-    .action(() => {
-      executeBuild();
-    });
-
-  program.parse(process.argv);
-}
+program.parse(process.argv);
