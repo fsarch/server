@@ -1,12 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { spawn, ChildProcess, SpawnOptions } from 'child_process';
 
 // Mock child_process module BEFORE importing cli
-const spawnMock = vi.fn(() => ({
-  on: vi.fn(() => ({})),
-}));
-
 vi.mock('child_process', () => ({
-  spawn: spawnMock,
+  spawn: vi.fn(),
 }));
 
 // Mock process.exit to prevent test termination
@@ -18,13 +15,16 @@ vi.spyOn(process, 'exit').mockImplementation(() => {
 const mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
+// Get the mocked spawn function with proper typing
+const spawnMock = vi.mocked(spawn);
+
 describe('CLI Functions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     spawnMock.mockReturnValue({
       on: vi.fn(),
       stdio: 'inherit',
-    });
+    } as unknown as ChildProcess);
   });
 
   describe('executeBuild', () => {
@@ -33,7 +33,11 @@ describe('CLI Functions', () => {
       cliModule.executeBuild('/test/cwd');
 
       expect(spawnMock).toHaveBeenCalledTimes(1);
-      const [command, args, options] = spawnMock.mock.calls[0];
+      
+      const call = spawnMock.mock.calls[0];
+      const command = call[0] as string;
+      const args = call[1] as string[];
+      const options = call[2] as SpawnOptions;
       
       expect(command).toBe('node');
       expect(Array.isArray(args)).toBe(true);
@@ -50,7 +54,8 @@ describe('CLI Functions', () => {
       const cliModule = await import('./cli.js');
       cliModule.executeBuild('/custom/cwd');
 
-      const [, , options] = spawnMock.mock.calls[0];
+      const call = spawnMock.mock.calls[0];
+      const options = call[2] as SpawnOptions;
       expect(options.cwd).toBe('/custom/cwd');
     });
 
@@ -64,7 +69,7 @@ describe('CLI Functions', () => {
           return mockProcess;
         }),
       };
-      spawnMock.mockReturnValue(mockProcess as never);
+      spawnMock.mockReturnValue(mockProcess as unknown as ChildProcess);
 
       const cliModule = await import('./cli.js');
       cliModule.executeBuild('/test/cwd');
@@ -84,7 +89,7 @@ describe('CLI Functions', () => {
           return mockProcess;
         }),
       };
-      spawnMock.mockReturnValue(mockProcess as never);
+      spawnMock.mockReturnValue(mockProcess as unknown as ChildProcess);
 
       const cliModule = await import('./cli.js');
       cliModule.executeBuild('/test/cwd');
@@ -101,7 +106,7 @@ describe('CLI Functions', () => {
           return mockProcess;
         }),
       };
-      spawnMock.mockReturnValue(mockProcess as never);
+      spawnMock.mockReturnValue(mockProcess as unknown as ChildProcess);
 
       const cliModule = await import('./cli.js');
       cliModule.executeBuild('/test/cwd');
@@ -116,7 +121,11 @@ describe('CLI Functions', () => {
       cliModule.executeStart('/test/cwd');
 
       expect(spawnMock).toHaveBeenCalledTimes(1);
-      const [command, args, options] = spawnMock.mock.calls[0];
+      
+      const call = spawnMock.mock.calls[0];
+      const command = call[0] as string;
+      const args = call[1] as string[];
+      const options = call[2] as SpawnOptions;
       
       expect(command).toBe('node');
       expect(Array.isArray(args)).toBe(true);
@@ -134,7 +143,8 @@ describe('CLI Functions', () => {
       const cliModule = await import('./cli.js');
       cliModule.executeStart('/custom/cwd');
 
-      const [, , options] = spawnMock.mock.calls[0];
+      const call = spawnMock.mock.calls[0];
+      const options = call[2] as SpawnOptions;
       expect(options.cwd).toBe('/custom/cwd');
     });
 
@@ -148,7 +158,7 @@ describe('CLI Functions', () => {
           return mockProcess;
         }),
       };
-      spawnMock.mockReturnValue(mockProcess as never);
+      spawnMock.mockReturnValue(mockProcess as unknown as ChildProcess);
 
       const cliModule = await import('./cli.js');
       cliModule.executeStart('/test/cwd');
@@ -168,7 +178,7 @@ describe('CLI Functions', () => {
           return mockProcess;
         }),
       };
-      spawnMock.mockReturnValue(mockProcess as never);
+      spawnMock.mockReturnValue(mockProcess as unknown as ChildProcess);
 
       const cliModule = await import('./cli.js');
       cliModule.executeStart('/test/cwd');

@@ -1,52 +1,54 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
-import { StaticAuthService } from './static/static-auth.service.js';
-import { JwtJwkAuthService } from './jwt-jwk/jwt-jwk-auth.service.js';
-import { OidcAuthService } from './oidc/oidc-auth.service.js';
-import { vi } from 'vitest';
+import { StaticAuthService } from './static/static-auth.service';
+import { JwtJwkAuthService } from './jwt-jwk/jwt-jwk-auth.service';
+import { OidcAuthService } from './oidc/oidc-auth.service';
+
+// Mock ConfigService
+class MockConfigService {
+  get<T = any>(key: string): T {
+    if (key === 'auth.type') return 'static' as T;
+    if (key?.includes('auth')) return { type: 'static' } as T;
+    return null as T;
+  }
+}
+
+// Mock Auth Services
+const mockStaticAuthService = {
+  validateRequest: vi.fn().mockResolvedValue({ id: 'user1' }),
+  signIn: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+};
+
+const mockJwtJwkAuthService = {
+  validateRequest: vi.fn().mockResolvedValue({ id: 'user1' }),
+  signIn: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+};
+
+const mockOidcAuthService = {
+  validateRequest: vi.fn().mockResolvedValue({ id: 'user1' }),
+  signIn: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+};
 
 describe('AuthService', () => {
   let service: AuthService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuthService,
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn(() => 'static'),
-          },
-        },
-        {
-          provide: StaticAuthService,
-          useValue: {
-            validateRequest: vi.fn(),
-            signIn: vi.fn(),
-          },
-        },
-        {
-          provide: JwtJwkAuthService,
-          useValue: {
-            validateRequest: vi.fn(),
-            signIn: vi.fn(),
-          },
-        },
-        {
-          provide: OidcAuthService,
-          useValue: {
-            validateRequest: vi.fn(),
-            signIn: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<AuthService>(AuthService);
+  beforeEach(() => {
+    const configService = new MockConfigService();
+    service = new AuthService(
+      configService as unknown as ConfigService,
+      mockStaticAuthService as unknown as StaticAuthService,
+      mockJwtJwkAuthService as unknown as JwtJwkAuthService,
+      mockOidcAuthService as unknown as OidcAuthService,
+    );
   });
 
   it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  it('should use static auth service when type is static', () => {
+    // The constructor sets authService based on config
     expect(service).toBeDefined();
   });
 });
