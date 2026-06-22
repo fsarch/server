@@ -1,6 +1,6 @@
 # @fsarch/server
 
-TypeScript-based HTTP server library with CLI support.
+NestJS building blocks for FSArch services: app bootstrap, auth, UAC/roles, pagination DTOs, and configuration loading.
 
 ## Installation
 
@@ -8,72 +8,158 @@ TypeScript-based HTTP server library with CLI support.
 npm install @fsarch/server
 ```
 
-## Usage as Library
+## Requirements
 
-```typescript
-import { Server } from '@fsarch/server';
+- Node.js >= 18
+- `config.yaml` in the project root (or set a custom path via `CONFIG_FILE_PATH`)
 
-const server = new Server({ port: 3000 });
+## Quick Start (as used in `bot-protection`)
 
-server.addRoute({
-  method: 'GET',
-  path: '/hello',
-  handler: (req, res) => {
-    res.json({ message: 'Hello World!' });
-  }
-});
+```ts
+import { AppModule } from './app.module.js';
+import { FsArchAppBuilder } from '@fsarch/server';
+import { DATABASE_OPTIONS } from './database/index.js';
 
-// With route parameters
-server.addRoute({
-  method: 'GET',
-  path: '/users/:id',
-  handler: (req, res) => {
-    res.json({ userId: req.params?.id });
-  }
-});
+const app = await new FsArchAppBuilder(AppModule, {
+  name: 'My-Service',
+  version: '1.0.0',
+})
+  .addSwagger({
+    title: 'My-Service',
+    description: 'API description',
+    version: '1.0.0',
+  })
+  .enableAuth()
+  .setDatabase(DATABASE_OPTIONS)
+  .build();
 
-// With middleware
-server.use((req, res, next) => {
-  console.log('Request:', req.method, req.url);
-  next();
-});
-
-await server.start();
+await app.listen(process.env.PORT ?? 3000);
 ```
 
-## CLI Usage
+## Configuration (`config.yaml`)
 
-```bash
-# Start server
-fsarch-server start --port 3000 --host 0.0.0.0
+The library loads configuration from `./config.yaml` by default.
+You can provide a different file via `CONFIG_FILE_PATH`.
 
-# Development mode
-fsarch-server dev --port 3000
+### Auth
 
-# Show help
-fsarch-server --help
+Supported types:
 
-# Show version
-fsarch-server --version
+- `static`
+- `jwt-jwk`
+- `oidc`
+
+Example:
+
+```yaml
+auth:
+  type: oidc
+  discovery_url: https://issuer.example/.well-known/openid-configuration
 ```
 
-## Features
+### UAC (roles / permissions)
 
-- TypeScript first with full type definitions
-- HTTP/HTTPS server support
-- Route handling with parameters
-- Middleware support
-- Configuration management
-- Built-in logging
-- CLI with multiple commands
-- Dual module support (CommonJS & ESM)
+Currently supported as static UAC configuration:
 
-## Development
+```yaml
+uac:
+  type: static
+  users:
+    - user_id: abcdef
+      permissions:
+        - manage_claims
+```
+
+### Database
+
+Supported types:
+
+- `sqlite`
+- `postgres`
+- `cockroachdb`
+
+Example:
+
+```yaml
+database:
+  type: postgres
+  host: db-01
+  port: 5432
+  username: dev
+  password: secret
+  database: my_service
+  ssl:
+    rejectUnauthorized: false
+```
+
+## Exports & Usage
+
+### Core
+
+```ts
+import { FsArchAppBuilder } from '@fsarch/server';
+```
+
+### Auth
+
+```ts
+import { AuthGuard, Public, UserData } from '@fsarch/server/auth';
+```
+
+### UAC
+
+```ts
+import { Roles } from '@fsarch/server/uac';
+```
+
+### Pagination (Swagger + DTO)
+
+```ts
+import {
+  ApiOkPaginatedResponse,
+  PaginationResultDto,
+} from '@fsarch/server/pagination';
+```
+
+Controller example:
+
+```ts
+@Get()
+@UseGuards(AuthGuard)
+@Roles(Role.manage_claims)
+@ApiOkPaginatedResponse(ClaimDto)
+async listClaims(): Promise<PaginationResultDto<ClaimDto>> {
+  return {
+    data: [],
+    metadata: {
+      currentPage: 1,
+      pageSize: 25,
+      totalItems: 0,
+      totalPages: 0,
+    },
+  };
+}
+```
+
+## CLI
+
+`@fsarch/server` liefert ein CLI-Binary `fsarch-server` mit:
+`@fsarch/server` ships a `fsarch-server` CLI binary with:
 
 ```bash
-npm install
-npm run build
-npm run dev
+fsarch-server build
+fsarch-server start
+```
+
+Typical scripts:
+
+```json
+{
+  "scripts": {
+    "build": "fsarch-server build",
+    "start": "fsarch-server start"
+  }
+}
 ```
 
 ## License
