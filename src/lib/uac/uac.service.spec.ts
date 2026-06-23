@@ -5,16 +5,19 @@ import { vi } from 'vitest';
 
 describe('UacService', () => {
   let service: UacService;
+  let staticUacService: { hasGrant: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    staticUacService = {
+      hasGrant: vi.fn().mockResolvedValue(true),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UacService,
         {
           provide: StaticUacService,
-          useValue: {
-            hasGrant: vi.fn().mockResolvedValue(true),
-          },
+          useValue: staticUacService,
         },
       ],
     }).compile();
@@ -27,8 +30,7 @@ describe('UacService', () => {
   });
 
   it('should return false when hasGrant returns false', async () => {
-    // The UacService uses hardcoded authType = 'static', so it will use staticUacService
-    // The staticUacService is mocked to return false by default
+    staticUacService.hasGrant.mockResolvedValueOnce(false);
     const result = await service.hasGrant('user1', ['role1']);
     expect(result).toBe(false);
   });
