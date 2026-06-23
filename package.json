@@ -61,13 +61,13 @@
     "@nestjs/testing": "^11.1.27",
     "@types/express": "^5.0.6",
     "@types/node": "^20.11.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@vitest/coverage-v8": "^2.0.0",
-    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^8.62.0",
+    "@typescript-eslint/parser": "^8.62.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "eslint": "^10.5.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
-    "vitest": "^2.0.0"
+    "vitest": "^4.1.9"
   },
   "dependencies": {
     "@nestjs/cli": "^11.0.23",
@@ -81,7 +81,7 @@
     "express": "^5.2.1",
     "joi": "^18.2.3",
     "jose": "^6.2.3",
-    "js-yaml": "^5.0.0",
+    "js-yaml": "^5.1.0",
     "pino": "^10.3.1",
     "serialize-error": "^13.0.1"
   },
