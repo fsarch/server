@@ -25,6 +25,10 @@
     "./configuration": {
       "import": "./dist/lib/configuration/index.js",
       "types": "./dist/lib/configuration/index.d.ts"
+    },
+    "./deletion": {
+      "import": "./dist/lib/deletion/index.js",
+      "types": "./dist/lib/deletion/index.d.ts"
     }
   },
   "bin": {
@@ -74,10 +78,13 @@
     "@nestjs/common": "^11.1.27",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.27",
+    "@nestjs/event-emitter": "^3.1.0",
     "@nestjs/jwt": "^11.0.2",
+    "@nestjs/schedule": "^6.1.3",
     "@nestjs/swagger": "^11.4.4",
     "@nestjs/typeorm": "^11.0.2",
     "commander": "^12.0.0",
+    "cron": "^4.4.0",
     "express": "^5.2.1",
     "joi": "^18.2.3",
     "jose": "^6.2.3",
