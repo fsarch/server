@@ -6,6 +6,9 @@ import {
   DatabaseModuleOptions,
 } from './database/database.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { EventEmitterModule } from "@nestjs/event-emitter";
+import { ScheduleModule } from "@nestjs/schedule";
+import { DeletionModule } from "./deletion/deletion.module.js";
 
 type FSArchOptions = {
   auth?: {};
@@ -13,11 +16,16 @@ type FSArchOptions = {
     roles: Array<string>;
   };
   database?: DatabaseModuleOptions;
+  deletion?: {};
 };
 
 @Global()
 @Module({
-  imports: [ConfigurationModule],
+  imports: [
+    ConfigurationModule,
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
+  ],
 })
 export class FsarchModule {
   static register(options: FSArchOptions): DynamicModule {
@@ -34,6 +42,10 @@ export class FsarchModule {
 
     if (options.database) {
       imports.push(DatabaseModule.register(options.database));
+    }
+
+    if (options.deletion) {
+      imports.push(DeletionModule.register(options.deletion));
     }
 
     return {

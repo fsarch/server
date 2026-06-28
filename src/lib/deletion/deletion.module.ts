@@ -1,27 +1,33 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { DynamicModule, Module, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
-import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import { DiscoveryModule } from '@nestjs/core';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { DeletionService } from './deletion.service.js';
 import { DeletionExplorer } from './deletion.explorer.js';
-import { DeletionConfig, ProcessedDeletionConfig } from './interfaces/deletion-config.interface.js';
+import { DeletionConfig } from './interfaces/deletion-config.interface.js';
 import { normalizeDeletionConfig } from './deletion.config.js';
 
-@Module({
-  imports: [
-    DiscoveryModule,
-    EventEmitterModule.forRoot(),
-    ScheduleModule.forRoot(),
-  ],
-  providers: [DeletionService, SchedulerRegistry, DeletionExplorer],
-  exports: [DeletionService],
-})
+type DeletionModuleConfig = {
+
+};
+
+@Module({})
 export class DeletionModule implements OnModuleInit {
   constructor(
     private readonly deletionService: DeletionService,
     private readonly configService: ConfigService,
   ) {}
+
+  static register(config: DeletionModuleConfig): DynamicModule {
+    return {
+      module: DeletionModule,
+      imports: [
+        DiscoveryModule,
+      ],
+      providers: [DeletionService, SchedulerRegistry, DeletionExplorer],
+      exports: [DeletionService],
+    }
+  }
 
   async onModuleInit(): Promise<void> {
     // Get raw config from YAML (snake_case)

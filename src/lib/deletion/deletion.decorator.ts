@@ -19,7 +19,7 @@ export function OnHardDelete(entity: string) {
   return function (
     target: object,
     propertyKey: string,
-    descriptor: TypedPropertyDescriptor<HardDeleteContext>,
+    descriptor: TypedPropertyDescriptor<HardDeleteEventHandler>,
   ) {
     SetMetadata(METADATA_KEY.ON_DELETION, { entity })(target, propertyKey, descriptor);
   };
