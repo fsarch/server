@@ -41,7 +41,7 @@ export class DatabaseModule {
 
             if (databaseConfig.type === 'sqlite') {
               return {
-                type: databaseConfig.type,
+                type: 'better-sqlite3',
                 database: databaseConfig.database,
                 ...baseConfig,
               } as TypeOrmModuleOptions;
