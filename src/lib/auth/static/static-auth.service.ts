@@ -25,11 +25,15 @@ export class StaticAuthService implements IAuthService {
       console.debug('could not get token from header');
       throw new UnauthorizedException();
     }
+
+    let userId;
     try {
       const payload = await this.jwtService.verifyAsync(token);
 
+      userId = payload.sub;
+
       request['user'] = {
-        id: payload.sub,
+        id: userId,
       };
     } catch (error) {
       console.debug('could not verify jwt', error);
@@ -38,6 +42,7 @@ export class StaticAuthService implements IAuthService {
     }
 
     return new User({
+      id: userId,
       accessToken: token,
     });
   }

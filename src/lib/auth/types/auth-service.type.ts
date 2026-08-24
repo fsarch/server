@@ -1,6 +1,7 @@
 import type { Request } from "express";
 
 export interface IUser {
+  getId(): string | undefined;
   getAccessToken(): string;
 }
 

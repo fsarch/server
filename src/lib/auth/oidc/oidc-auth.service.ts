@@ -65,11 +65,15 @@ export class OidcAuthService implements IAuthService {
 
     const jwkSet = await this.getJwkSet();
 
+    let userId;
+
     try {
       const jwtData = await jwtVerify(token, jwkSet);
 
+      userId = jwtData.payload.sub;
+
       request['user'] = {
-        id: jwtData.payload.sub,
+        id: userId,
       };
     } catch (error) {
       console.debug('could not verify jwt', error);
@@ -78,6 +82,7 @@ export class OidcAuthService implements IAuthService {
     }
 
     return new User({
+      id: userId,
       accessToken: token,
     });
   }
