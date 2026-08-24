@@ -5,11 +5,12 @@ import { vi } from 'vitest';
 
 describe('UacService', () => {
   let service: UacService;
-  let staticUacService: { hasGrant: ReturnType<typeof vi.fn> };
+  let staticUacService: { hasGrant: ReturnType<typeof vi.fn>; getRoles: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     staticUacService = {
       hasGrant: vi.fn().mockResolvedValue(true),
+      getRoles: vi.fn().mockResolvedValue([]),
     };
 
     const module: TestingModule = await Test.createTestingModule({

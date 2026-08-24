@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '../../auth/role.enum.js';
 import { ROLES_KEY } from '../decorators/roles.decorator.js';
@@ -6,6 +6,8 @@ import { UacService } from '../uac.service.js';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
+  private readonly logger = new Logger(RolesGuard.name);
+
   constructor(
     private reflector: Reflector,
     private readonly uacService: UacService,
@@ -26,6 +28,10 @@ export class RolesGuard implements CanActivate {
         return true;
       }
     }
+
+    this.logger.warn(
+      `Access denied for user "${user?.id}": missing required role(s) [${requiredRoles.join(', ')}]`,
+    );
 
     return false;
   }

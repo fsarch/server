@@ -14,4 +14,8 @@ export class UacService implements IUacService {
   async hasGrant(subjectId: string, roles: Array<string>): Promise<boolean> {
     return await this.uacService?.hasGrant(subjectId, roles) ?? false;
   }
+
+  async getRoles(subjectId: string): Promise<Array<string>> {
+    return await this.uacService?.getRoles(subjectId) ?? [];
+  }
 }
