@@ -30,6 +30,7 @@ const app = await new FsArchAppBuilder(AppModule, {
     version: '1.0.0',
   })
   .enableAuth()
+  .enableUac(['manage_claims'])
   .setDatabase(DATABASE_OPTIONS)
   .build();
 
@@ -58,6 +59,11 @@ auth:
 ```
 
 ### UAC (roles / permissions)
+
+`@Roles(...)` decorators are only enforced once `.enableUac(roles)` is called on the
+`FsArchAppBuilder` (see Quick Start above) — it registers the `RolesGuard` as a global
+guard and validates `config.yaml`'s `uac.users[].permissions` against the given `roles`
+list. Without it, `@Roles(...)` has no runtime effect.
 
 Currently supported as static UAC configuration:
 

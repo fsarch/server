@@ -21,6 +21,7 @@ export class FsArchAppBuilder {
   private databaseOptions?: DatabaseModuleOptions;
   private authOptions?: {};
   private deletionOptions?: {};
+  private uacOptions?: { roles: Array<string> };
   private readonly httpMethods = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
 
   constructor(private readonly baseModule: IEntryModule, private readonly info: { name: string; version: string }) {
@@ -44,6 +45,11 @@ export class FsArchAppBuilder {
 
   enableSoftDeletion(): this {
     this.deletionOptions = {};
+    return this;
+  }
+
+  enableUac(roles: Array<string>): this {
+    this.uacOptions = { roles };
     return this;
   }
 
@@ -86,6 +92,7 @@ export class FsArchAppBuilder {
           auth: this.authOptions,
           database: this.databaseOptions,
           deletion: this.deletionOptions,
+          uac: this.uacOptions,
         }),
       ],
     })
