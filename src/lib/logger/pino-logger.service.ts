@@ -1,6 +1,34 @@
 import { Injectable, Scope, ConsoleLogger } from '@nestjs/common';
 import { isErrorLike, serializeError } from 'serialize-error';
-import pino, { type Logger } from 'pino';
+import pino, { type Logger, type LevelWithSilent } from 'pino';
+
+const LOG_LEVELS: Array<LevelWithSilent> = [
+  'trace',
+  'debug',
+  'info',
+  'warn',
+  'error',
+  'fatal',
+  'silent',
+];
+const DEFAULT_LOG_LEVEL: LevelWithSilent = 'warn';
+
+function resolveLogLevel(): LevelWithSilent {
+  const configuredLevel = process.env.LOG_LEVEL?.toLowerCase() as LevelWithSilent | undefined;
+
+  if (!configuredLevel) {
+    return DEFAULT_LOG_LEVEL;
+  }
+
+  if (!LOG_LEVELS.includes(configuredLevel)) {
+    console.warn(
+      `Invalid LOG_LEVEL "${configuredLevel}", falling back to "${DEFAULT_LOG_LEVEL}". Valid values: ${LOG_LEVELS.join(', ')}`,
+    );
+    return DEFAULT_LOG_LEVEL;
+  }
+
+  return configuredLevel;
+}
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class PinoLogger extends ConsoleLogger {
@@ -15,7 +43,7 @@ export class PinoLogger extends ConsoleLogger {
     this.section = section || '';
 
     this.pino = pino.pino({
-      level: 'debug',
+      level: resolveLogLevel(),
       base: undefined,
       timestamp: false,
       messageKey: 'message',
