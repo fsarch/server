@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Role } from '../../auth/role.enum.js';
 import { ROLES_KEY } from '../decorators/roles.decorator.js';
 import { UacService } from '../uac.service.js';
+import { IUser } from "../../auth/types/auth-service.type.js";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -21,16 +22,21 @@ export class RolesGuard implements CanActivate {
     if (!requiredRoles) {
       return true;
     }
-    const { user } = context.switchToHttp().getRequest();
+    const user = context.switchToHttp().getRequest().user as IUser | undefined;
+    const userId = user?.getId?.();
+
+    if (!userId) {
+      return false;
+    }
 
     for (const role of requiredRoles) {
-      if (await this.uacService.hasGrant(user.id, [role])) {
+      if (await this.uacService.hasGrant(userId, [role])) {
         return true;
       }
     }
 
     this.logger.warn(
-      `Access denied for user "${user?.id}": missing required role(s) [${requiredRoles.join(', ')}]`,
+      `Access denied for user "${userId}": missing required role(s) [${requiredRoles.join(', ')}]`,
     );
 
     return false;
