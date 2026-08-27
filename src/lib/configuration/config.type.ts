@@ -80,9 +80,28 @@ type ConfigCockroachdbDatabaseType = {
 export type ConfigTracingType = {
   enabled: boolean;
   serviceName?: string;
+  sampler?: ConfigTracingSamplerType;
   sampleRatio?: number;
   exporter?: ConfigTracingExporterType;
 };
+
+/**
+ * Mirrors the standard `OTEL_TRACES_SAMPLER` values (minus `jaeger_remote` and
+ * `xray`, which need extra setup this library doesn't wire up).
+ *
+ * The `parentbased_*` variants respect the parent span's sampling decision
+ * (e.g. an upstream service's `traceparent` header) and only apply their own
+ * rule for root spans — this is almost always what you want, since plain
+ * (non-parent-based) sampling re-decides independently per span and can tear
+ * a distributed trace apart. Defaults to `parentbased_traceidratio`.
+ */
+export type ConfigTracingSamplerType =
+  | 'always_on'
+  | 'always_off'
+  | 'traceidratio'
+  | 'parentbased_always_on'
+  | 'parentbased_always_off'
+  | 'parentbased_traceidratio';
 
 export type ConfigTracingExporterType =
   | ConfigTracingConsoleExporterType

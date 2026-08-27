@@ -117,6 +117,7 @@ Example:
 tracing:
   enabled: true
   serviceName: my-service # defaults to the `name` passed to FsArchAppBuilder
+  sampler: parentbased_traceidratio # default; see below for the other options
   sampleRatio: 1.0 # 0.0 - 1.0, defaults to 1.0 (trace everything)
   exporter:
     type: otlp-http
@@ -124,6 +125,21 @@ tracing:
     headers:
       Authorization: Bearer secret
 ```
+
+Supported `sampler` values (mirrors the standard `OTEL_TRACES_SAMPLER` values):
+
+- `parentbased_traceidratio` **(default)** — if the incoming request already
+  has a sampling decision (e.g. a `traceparent` header from an upstream
+  service), that decision is kept; root spans are sampled at `sampleRatio`
+- `parentbased_always_on` / `parentbased_always_off` — same parent-respecting
+  behavior, but root spans are always/never sampled
+- `traceidratio` — samples every span at `sampleRatio`, **ignoring the parent's
+  decision**. Rarely what you want: it can tear a distributed trace apart when
+  an upstream service's sampled span has unsampled children here
+- `always_on` / `always_off` — trace everything / nothing, ignoring the parent
+
+Stick with a `parentbased_*` sampler unless you have a specific reason not
+to — it's what keeps traces intact across service boundaries.
 
 `FsArchAppBuilder.build()` calls `app.enableShutdownHooks()` automatically
 when tracing is enabled, so spans are flushed on `SIGTERM`/`SIGINT`.

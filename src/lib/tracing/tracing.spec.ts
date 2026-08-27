@@ -79,6 +79,58 @@ describe('tracing', () => {
     await shutdownTracing();
   });
 
+  it('rejects an unknown sampler value', async () => {
+    const { initializeTracing } = await freshTracingModule({
+      tracing: {
+        enabled: true,
+        sampler: 'not-a-real-sampler',
+        exporter: { type: 'console' },
+      },
+    });
+
+    expect(() =>
+      initializeTracing({ serviceName: 'test-service' }),
+    ).toThrow('invalid config');
+  });
+
+  it.each([
+    'always_on',
+    'always_off',
+    'traceidratio',
+    'parentbased_always_on',
+    'parentbased_always_off',
+    'parentbased_traceidratio',
+  ] as const)('accepts sampler "%s"', async (sampler) => {
+    const { initializeTracing, shutdownTracing } = await freshTracingModule({
+      tracing: {
+        enabled: true,
+        sampler,
+        sampleRatio: 0.5,
+        exporter: { type: 'console' },
+      },
+    });
+
+    expect(initializeTracing({ serviceName: 'test-service' })).toBe(true);
+
+    await shutdownTracing();
+  });
+
+  it('defaults to parentbased_traceidratio when no sampler is configured', async () => {
+    const { initializeTracing, shutdownTracing } = await freshTracingModule({
+      tracing: {
+        enabled: true,
+        exporter: { type: 'console' },
+      },
+    });
+
+    // No explicit assertion on the resolved Sampler instance (NodeSDK doesn't
+    // expose it) — this mainly guards that the default path still builds and
+    // starts successfully.
+    expect(initializeTracing({ serviceName: 'test-service' })).toBe(true);
+
+    await shutdownTracing();
+  });
+
   it('getTracer returns a usable tracer even when tracing is disabled', async () => {
     const { getTracer } = await freshTracingModule({});
 

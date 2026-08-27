@@ -1,7 +1,11 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
+  AlwaysOffSampler,
+  AlwaysOnSampler,
   ConsoleSpanExporter,
+  ParentBasedSampler,
   TraceIdRatioBasedSampler,
+  type Sampler,
   type SpanExporter,
 } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter as OTLPTraceExporterHttp } from '@opentelemetry/exporter-trace-otlp-http';
@@ -19,9 +23,37 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import { loadConfigFile } from '../configuration/configuration.js';
 import { TRACING_CONFIG_VALIDATOR } from './tracing-config.validator.js';
-import { ConfigTracingExporterType } from '../configuration/config.type.js';
+import {
+  ConfigTracingExporterType,
+  ConfigTracingSamplerType,
+} from '../configuration/config.type.js';
 
 const DEFAULT_TRACER_NAME = 'fsarch';
+const DEFAULT_SAMPLER: ConfigTracingSamplerType = 'parentbased_traceidratio';
+
+function createSampler(
+  samplerType: ConfigTracingSamplerType,
+  sampleRatio: number,
+): Sampler {
+  switch (samplerType) {
+    case 'always_on':
+      return new AlwaysOnSampler();
+    case 'always_off':
+      return new AlwaysOffSampler();
+    case 'traceidratio':
+      return new TraceIdRatioBasedSampler(sampleRatio);
+    case 'parentbased_always_on':
+      return new ParentBasedSampler({ root: new AlwaysOnSampler() });
+    case 'parentbased_always_off':
+      return new ParentBasedSampler({ root: new AlwaysOffSampler() });
+    case 'parentbased_traceidratio':
+      return new ParentBasedSampler({
+        root: new TraceIdRatioBasedSampler(sampleRatio),
+      });
+    default:
+      throw new Error(`Tracing sampler type unknown: ${samplerType as string}`);
+  }
+}
 
 let sdk: NodeSDK | undefined;
 
@@ -96,7 +128,10 @@ export function initializeTracing(defaults: {
         : {}),
     }),
     traceExporter: createExporter(tracingConfig.exporter as ConfigTracingExporterType),
-    sampler: new TraceIdRatioBasedSampler(tracingConfig.sampleRatio ?? 1),
+    sampler: createSampler(
+      tracingConfig.sampler ?? DEFAULT_SAMPLER,
+      tracingConfig.sampleRatio ?? 1,
+    ),
     instrumentations: [
       new HttpInstrumentation(),
       new ExpressInstrumentation(),

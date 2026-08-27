@@ -235,9 +235,18 @@ Optional — omit the `tracing` section entirely to leave distributed tracing di
 interface ConfigTracingType {
   enabled: boolean;
   serviceName?: string; // defaults to the name passed to FsArchAppBuilder
+  sampler?: ConfigTracingSamplerType; // defaults to 'parentbased_traceidratio'
   sampleRatio?: number; // 0.0 - 1.0, defaults to 1.0
   exporter?: ConfigTracingExporterType; // required when enabled: true
 }
+
+type ConfigTracingSamplerType =
+  | 'always_on'
+  | 'always_off'
+  | 'traceidratio'
+  | 'parentbased_always_on'
+  | 'parentbased_always_off'
+  | 'parentbased_traceidratio';
 
 type ConfigTracingExporterType =
   | { type: 'console' }

@@ -22,9 +22,19 @@ export const TRACING_EXPORTER_CONFIG_VALIDATOR = Joi.alternatives(
   TRACING_OTLP_GRPC_EXPORTER_CONFIG_VALIDATOR,
 );
 
+export const TRACING_SAMPLER_CONFIG_VALIDATOR = Joi.string().valid(
+  'always_on',
+  'always_off',
+  'traceidratio',
+  'parentbased_always_on',
+  'parentbased_always_off',
+  'parentbased_traceidratio',
+);
+
 export const TRACING_CONFIG_VALIDATOR = Joi.object({
   enabled: Joi.boolean().required(),
   serviceName: Joi.string(),
+  sampler: TRACING_SAMPLER_CONFIG_VALIDATOR,
   sampleRatio: Joi.number().min(0).max(1),
   exporter: Joi.when('enabled', {
     is: true,
