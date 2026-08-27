@@ -73,8 +73,15 @@ const CONFIG_VALIDATION_SCHEMA = Joi
   // }
   ();
 
-export default () => {
-  const config = yaml.load(
+/**
+ * Reads and parses the YAML config file (respecting `CONFIG_FILE_PATH`) without
+ * applying any validation. Exposed separately so callers that need the raw
+ * config before the Nest DI container is available (e.g. tracing bootstrap,
+ * which must start before `NestFactory.create`) can reuse the same loading
+ * logic instead of duplicating it.
+ */
+export function loadConfigFile(): ConfigType {
+  return yaml.load(
     readFileSync(
       resolve(
         process.cwd(),
@@ -83,6 +90,10 @@ export default () => {
       'utf8',
     ),
   ) as ConfigType;
+}
+
+export default () => {
+  const config = loadConfigFile();
 
   const valid = CONFIG_VALIDATION_SCHEMA.validate(config, {
     abortEarly: false,

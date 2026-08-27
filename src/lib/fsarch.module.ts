@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
 import { DeletionModule } from "./deletion/deletion.module.js";
+import { TracingModule } from "./tracing/tracing.module.js";
 
 type FSArchOptions = {
   auth?: {};
@@ -25,6 +26,7 @@ type FSArchOptions = {
     ConfigurationModule,
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
+    TracingModule,
   ],
 })
 export class FsarchModule {

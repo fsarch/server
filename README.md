@@ -98,6 +98,52 @@ database:
     rejectUnauthorized: false
 ```
 
+### Tracing (OpenTelemetry)
+
+Distributed tracing is off by default. Enable it via the `tracing` section of
+`config.yaml` — no code changes required. It instruments HTTP, Express,
+Postgres and Nest (guards/interceptors/handlers) and starts before the app is
+built, so spans cover the whole request lifecycle.
+
+Supported exporters:
+
+- `console` — prints spans to stdout, useful for local debugging
+- `otlp-http` — sends spans to an OTLP/HTTP collector (e.g. an OTel Collector, Grafana Tempo, Honeycomb)
+- `otlp-grpc` — sends spans to an OTLP/gRPC collector
+
+Example:
+
+```yaml
+tracing:
+  enabled: true
+  serviceName: my-service # defaults to the `name` passed to FsArchAppBuilder
+  sampleRatio: 1.0 # 0.0 - 1.0, defaults to 1.0 (trace everything)
+  exporter:
+    type: otlp-http
+    url: http://localhost:4318/v1/traces
+    headers:
+      Authorization: Bearer secret
+```
+
+`FsArchAppBuilder.build()` calls `app.enableShutdownHooks()` automatically
+when tracing is enabled, so spans are flushed on `SIGTERM`/`SIGINT`.
+
+Manual/custom spans in application code:
+
+```ts
+import { getTracer } from '@fsarch/server/tracing';
+
+const tracer = getTracer('my-service');
+
+await tracer.startActiveSpan('do-something', async (span) => {
+  try {
+    // ...
+  } finally {
+    span.end();
+  }
+});
+```
+
 ## Exports & Usage
 
 ### Core
@@ -116,6 +162,12 @@ import { AuthGuard, Public, UserData } from '@fsarch/server/auth';
 
 ```ts
 import { Roles } from '@fsarch/server/uac';
+```
+
+### Tracing
+
+```ts
+import { getTracer } from '@fsarch/server/tracing';
 ```
 
 ### Pagination (Swagger + DTO)

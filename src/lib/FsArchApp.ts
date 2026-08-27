@@ -6,6 +6,7 @@ import { DatabaseModuleOptions } from "./database/database.module.js";
 import { FsarchModule } from "./fsarch.module.js";
 import { AuthExceptionFilter } from "./auth/errors/AuthExceptionFilter.js";
 import { AuthService } from "./auth/auth.service.js";
+import { initializeTracing } from "./tracing/tracing.js";
 
 type SwaggerOptionsType = {
   path?: string;
@@ -83,6 +84,13 @@ export class FsArchAppBuilder {
   }
 
   public async build(): Promise<INestApplication> {
+    // Started before anything else: instrumentations need to patch HTTP/Express/
+    // Postgres/Nest before NestFactory.create wires up the actual app.
+    const tracingEnabled = initializeTracing({
+      serviceName: this.info.name,
+      serviceVersion: this.info.version,
+    });
+
     const AppModule = this.baseModule;
 
     @Module({
@@ -102,6 +110,12 @@ export class FsArchAppBuilder {
       logger: PinoLogger.Instance,
     });
     app.enableCors();
+
+    if (tracingEnabled) {
+      // Ensures spans are flushed on SIGTERM/SIGINT instead of being dropped
+      // when the process exits.
+      app.enableShutdownHooks();
+    }
 
     if (this.authOptions) {
       const authService = app.get(AuthService);

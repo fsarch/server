@@ -2,6 +2,7 @@ export type ConfigType = {
   auth: ConfigAuthType;
   uac: ConfigStaticUacType;
   database: ConfigDatabaseType;
+  tracing?: ConfigTracingType;
 };
 
 export type ConfigAuthType = ConfigStaticAuthType | ConfigJwtJwkAuthType | ConfigOidcAuthType;
@@ -74,4 +75,32 @@ type ConfigCockroachdbDatabaseType = {
           path: string;
         };
   };
+};
+
+export type ConfigTracingType = {
+  enabled: boolean;
+  serviceName?: string;
+  sampleRatio?: number;
+  exporter?: ConfigTracingExporterType;
+};
+
+export type ConfigTracingExporterType =
+  | ConfigTracingConsoleExporterType
+  | ConfigTracingOtlpHttpExporterType
+  | ConfigTracingOtlpGrpcExporterType;
+
+export type ConfigTracingConsoleExporterType = {
+  type: 'console';
+};
+
+export type ConfigTracingOtlpHttpExporterType = {
+  type: 'otlp-http';
+  url: string;
+  headers?: Record<string, string>;
+};
+
+export type ConfigTracingOtlpGrpcExporterType = {
+  type: 'otlp-grpc';
+  url: string;
+  headers?: Record<string, string>;
 };

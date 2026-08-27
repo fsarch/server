@@ -227,6 +227,26 @@ interface ConfigCockroachdbDatabaseType {
 }
 ```
 
+#### Tracing Configuration
+
+Optional — omit the `tracing` section entirely to leave distributed tracing disabled.
+
+```typescript
+interface ConfigTracingType {
+  enabled: boolean;
+  serviceName?: string; // defaults to the name passed to FsArchAppBuilder
+  sampleRatio?: number; // 0.0 - 1.0, defaults to 1.0
+  exporter?: ConfigTracingExporterType; // required when enabled: true
+}
+
+type ConfigTracingExporterType =
+  | { type: 'console' }
+  | { type: 'otlp-http'; url: string; headers?: Record<string, string> }
+  | { type: 'otlp-grpc'; url: string; headers?: Record<string, string> };
+```
+
+See the main [README](../../../README.md#tracing-opentelemetry) for a full example and usage.
+
 ## Environment Variables
 
 | Variable | Description | Default |
