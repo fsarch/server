@@ -144,6 +144,36 @@ await tracer.startActiveSpan('do-something', async (span) => {
 });
 ```
 
+For the common case — wrap a whole method in its own span — use `@Span()`
+instead. It works on controllers, services, repositories or plain helper
+classes, handles sync and async methods, and records thrown/rejected errors
+on the span automatically (status + exception event):
+
+```ts
+import { Span } from '@fsarch/server/tracing';
+
+@Injectable()
+export class ClaimsService {
+  @Span() // span name defaults to "ClaimsService.listClaims"
+  async listClaims() { ... }
+
+  @Span({ name: 'claims.enrich', attributes: { component: 'claims' } })
+  enrich(claim: Claim) { ... }
+}
+```
+
+To trace an arbitrary block of code that isn't a whole method (e.g. inside a
+plain function or a specific branch of a method), use `withSpan()` — it's the
+helper `@Span()` is built on:
+
+```ts
+import { withSpan } from '@fsarch/server/tracing';
+
+const claims = await withSpan('claims.fetch-from-provider', () => provider.fetch());
+```
+
+Both are safe to use even when tracing is disabled: spans are simply no-ops.
+
 ## Exports & Usage
 
 ### Core
