@@ -84,8 +84,15 @@ export class FsArchAppBuilder {
   }
 
   public async build(): Promise<INestApplication> {
-    // Started before anything else: instrumentations need to patch HTTP/Express/
-    // Postgres/Nest before NestFactory.create wires up the actual app.
+    // NOTE: this is too late to instrument HTTP/Express/Postgres/Nest — by
+    // this point the app's own module graph (and this file's own top-level
+    // `import { NestFactory } from '@nestjs/core'`) has already loaded those
+    // modules unpatched. Real auto-instrumentation requires the
+    // `@fsarch/server/register` preload (see src/lib/tracing/register.ts),
+    // loaded via `node --import` before the app's entry point. This call
+    // still matters for services that skip the preload: it's what makes
+    // `getTracer()`/`@Span()`/`withSpan()` and the shutdown-hook wiring below
+    // work.
     const tracingEnabled = initializeTracing({
       serviceName: this.info.name,
       serviceVersion: this.info.version,

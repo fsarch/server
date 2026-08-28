@@ -33,6 +33,10 @@
     "./tracing": {
       "import": "./dist/lib/tracing/index.js",
       "types": "./dist/lib/tracing/index.d.ts"
+    },
+    "./register": {
+      "import": "./dist/lib/tracing/register.js",
+      "types": "./dist/lib/tracing/register.d.ts"
     }
   },
   "bin": {

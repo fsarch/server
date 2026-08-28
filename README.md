@@ -101,9 +101,43 @@ database:
 ### Tracing (OpenTelemetry)
 
 Distributed tracing is off by default. Enable it via the `tracing` section of
-`config.yaml` — no code changes required. It instruments HTTP, Express,
-Postgres and Nest (guards/interceptors/handlers) and starts before the app is
-built, so spans cover the whole request lifecycle.
+`config.yaml` — no code changes required.
+
+**You must launch the process with the `@fsarch/server/register` preload for
+auto-instrumentation (HTTP, Express, Postgres, Nest guards/interceptors/handlers)
+to actually take effect:**
+
+```bash
+node --import @fsarch/server/register dist/main.js
+```
+
+or via `NODE_OPTIONS` (e.g. in a Dockerfile `CMD`):
+
+```bash
+NODE_OPTIONS="--import @fsarch/server/register" node dist/main.js
+```
+
+Why this is required: auto-instrumentation patches `http`/`express`/`pg`/
+`@nestjs/core` by hooking `require`/`import` the first time each module is
+loaded — it has to be in place *before* any of those modules load anywhere in
+the process, or the already-loaded, unpatched module stays unpatched. Calling
+`initializeTracing()` from your own bootstrap code (which is what
+`FsArchAppBuilder.build()` does internally) is too late: ESM resolves a
+file's entire static `import` graph before running any of its top-level code,
+so by the time `build()` runs, your `main.ts`'s own
+`import { AppModule } from './app.module.js'` (and everything that pulls in)
+has already loaded those modules unpatched. `--import` runs the preload
+before your entry point's module graph loads at all, which is the only point
+where patching still works.
+
+Without the preload, tracing still "works" in the sense that `config.yaml`
+validates and the SDK starts, but only manual spans
+(`getTracer()`/`@Span()`/`withSpan()`) will actually produce data — the auto-
+instrumentations won't have patched anything.
+
+Because the preload runs before `FsArchAppBuilder` is constructed, it has no
+access to the `name`/`version` you pass there — set `tracing.serviceName` in
+`config.yaml` explicitly (or the `OTEL_SERVICE_NAME` env var) when using it.
 
 Supported exporters:
 
@@ -116,7 +150,7 @@ Example:
 ```yaml
 tracing:
   enabled: true
-  serviceName: my-service # defaults to the `name` passed to FsArchAppBuilder
+  serviceName: my-service # required when using the --import preload; otherwise defaults to the `name` passed to FsArchAppBuilder
   sampler: parentbased_traceidratio # default; see below for the other options
   sampleRatio: 1.0 # 0.0 - 1.0, defaults to 1.0 (trace everything)
   exporter:
@@ -264,6 +298,14 @@ Typical scripts:
     "start": "fsarch-server start"
   }
 }
+```
+
+`fsarch-server start` runs `nest start --watch` for local development and
+does not load the tracing preload. For production, run the built output
+directly with the preload (see [Tracing](#tracing-opentelemetry)):
+
+```bash
+node --import @fsarch/server/register dist/main.js
 ```
 
 ## License

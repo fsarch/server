@@ -30,6 +30,7 @@ import {
 
 const DEFAULT_TRACER_NAME = 'fsarch';
 const DEFAULT_SAMPLER: ConfigTracingSamplerType = 'parentbased_traceidratio';
+const DEFAULT_SERVICE_NAME = 'fsarch-service';
 
 function createSampler(
   samplerType: ConfigTracingSamplerType,
@@ -89,16 +90,29 @@ function createExporter(exporterConfig: ConfigTracingExporterType): SpanExporter
  * OpenTelemetry NodeSDK with instrumentation for the HTTP/Express/Postgres/Nest
  * stack used by fsarch services.
  *
- * Called as the very first step of `FsArchAppBuilder.build()`, i.e. before
- * `NestFactory.create()` wires up the app, so instrumentations get to patch
- * the HTTP server, router and database driver before they are actually used.
+ * IMPORTANT: auto-instrumentation only patches modules that haven't been
+ * loaded yet. `http`/`express`/`pg`/`@nestjs/core` are essentially always
+ * already loaded by the time application code (including
+ * `FsArchAppBuilder.build()`) runs, because ESM resolves a file's entire
+ * static `import` graph before executing any of its top-level code — so
+ * calling this from inside the app is too late to instrument any of that.
+ * Use the `@fsarch/server/register` preload instead (see its module doc),
+ * which calls this function before the app's own module graph loads at all.
+ * `FsArchAppBuilder.build()` still calls this too, purely so
+ * `getTracer()`/`@Span()`/`withSpan()` and shutdown-hook wiring work even for
+ * services that only need manual spans and skip the preload.
+ *
+ * `defaults` is optional because the preload has no access to the
+ * `name`/`version` passed to `FsArchAppBuilder` (that object doesn't exist
+ * yet at preload time) — set `tracing.serviceName` in `config.yaml` or the
+ * `OTEL_SERVICE_NAME` env var to name the service in that case.
  *
  * Safe to call multiple times: it only ever starts the SDK once.
  *
  * @returns `true` if tracing was started, `false` if it is disabled/not configured.
  */
-export function initializeTracing(defaults: {
-  serviceName: string;
+export function initializeTracing(defaults?: {
+  serviceName?: string;
   serviceVersion?: string;
 }): boolean {
   if (sdk) {
@@ -120,10 +134,16 @@ export function initializeTracing(defaults: {
     throw new Error('invalid config');
   }
 
+  const serviceName =
+    tracingConfig.serviceName ??
+    defaults?.serviceName ??
+    process.env.OTEL_SERVICE_NAME ??
+    DEFAULT_SERVICE_NAME;
+
   sdk = new NodeSDK({
     resource: resourceFromAttributes({
-      [ATTR_SERVICE_NAME]: tracingConfig.serviceName ?? defaults.serviceName,
-      ...(defaults.serviceVersion
+      [ATTR_SERVICE_NAME]: serviceName,
+      ...(defaults?.serviceVersion
         ? { [ATTR_SERVICE_VERSION]: defaults.serviceVersion }
         : {}),
     }),

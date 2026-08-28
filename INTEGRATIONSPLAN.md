@@ -86,7 +86,7 @@ my-microservice/
     "build": "fsarch-server build",
     "start": "fsarch-server start",
     "start:dev": "ts-node src/main.ts",
-    "start:prod": "node dist/main.js",
+    "start:prod": "node --import @fsarch/server/register dist/main.js",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "typeorm": "node --loader ts-node/esm ./node_modules/typeorm/cli.js",
@@ -216,6 +216,21 @@ database:
 # deletion:
 #   enabled: true
 #   cron_expression: "0 0 * * *"
+
+# =============================================================================
+# TRACING (optional, OpenTelemetry)
+# `serviceName` is required here when the process is started with the
+# `@fsarch/server/register` preload (see Phase 5.2) — that preload runs
+# before FsArchAppBuilder exists, so it has no `name`/`version` to fall back to.
+# =============================================================================
+# tracing:
+#   enabled: true
+#   serviceName: my-microservice
+#   sampler: parentbased_traceidratio
+#   sampleRatio: 1.0
+#   exporter:
+#     type: otlp-http
+#     url: http://localhost:4318/v1/traces
 ```
 
 ---
@@ -701,6 +716,22 @@ export class AppModule {}
 
 **Pfad:** `/src/main.ts`
 
+**Wichtig, falls Tracing (`tracing.enabled: true`) genutzt wird:** Auto-
+Instrumentierung (HTTP/Express/Postgres/Nest) patcht Module beim ersten
+Laden — das funktioniert nur, wenn sie *vor* dem `import { AppModule } ...`
+unten aktiv ist, also nicht durch Code in `main.ts` selbst, sondern über
+Node's `--import`-Flag beim Prozessstart:
+
+```bash
+node --import @fsarch/server/register dist/main.js
+```
+
+`start:prod` in `package.json` und das Dockerfile in Phase 9 sind bereits
+entsprechend konfiguriert. Ohne den Preload startet Tracing zwar trotzdem
+(manuelle Spans über `getTracer()`/`@Span()`/`withSpan()` funktionieren), aber
+die Auto-Instrumentierung patcht nichts mehr, da `@nestjs/core` durch den
+`import` unten längst geladen ist.
+
 ```typescript
 import { AppModule } from './app.module.js';
 import { FsArchAppBuilder } from '@fsarch/server';
@@ -981,7 +1012,7 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "--import", "@fsarch/server/register", "dist/main.js"]
 ```
 
 ---
