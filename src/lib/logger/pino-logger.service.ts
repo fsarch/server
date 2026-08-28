@@ -1,4 +1,4 @@
-import { Injectable, Scope, ConsoleLogger } from '@nestjs/common';
+import { Injectable, Optional, Scope, ConsoleLogger } from '@nestjs/common';
 import { isErrorLike, serializeError } from 'serialize-error';
 import pino, { type Logger, type LevelWithSilent } from 'pino';
 
@@ -37,7 +37,7 @@ export class PinoLogger extends ConsoleLogger {
   private pino: Logger;
   private section: string;
 
-  constructor(section?: string) {
+  constructor(@Optional() section?: string) {
     super();
 
     this.section = section || '';
