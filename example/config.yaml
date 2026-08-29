@@ -1,0 +1,8 @@
+# Minimal configuration for this example.
+#
+# @fsarch/server always reads a config.yaml from the process' working
+# directory (or CONFIG_FILE_PATH). This example doesn't use auth, uac,
+# database or tracing, so an (almost) empty file is enough - see the main
+# README.md for the full set of options.
+tracing:
+  enabled: false
