@@ -5,6 +5,7 @@ import { CronJob } from 'cron';
 import { ProcessedDeletionConfig } from './interfaces/deletion-config.interface.js';
 import { HardDeleteEvent } from './interfaces/deletion-event.interface.js';
 import { DELETION_EVENT } from './constants.js';
+import { Span } from "../tracing/index.js";
 
 @Injectable()
 export class DeletionService {
@@ -43,6 +44,9 @@ export class DeletionService {
   /**
    * Handle the deletion job - emit typed event with cutoff date
    */
+  @Span({
+    name: 'fsarch.deletion.handleDeletionJob',
+  })
   private async handleDeletionJob(config: ProcessedDeletionConfig): Promise<void> {
     this.logger.debug('Running deletion job...');
 
