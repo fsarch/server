@@ -34,7 +34,29 @@
  *
  * No-op (does not start the NodeSDK) unless `tracing.enabled: true` is set in
  * `config.yaml`, same as calling `initializeTracing()` directly.
+ *
+ * ## ESM modules (Express, pg, ...)
+ *
+ * The above only covers modules loaded via CommonJS `require()` — that's
+ * what NodeSDK's auto-instrumentation hooks (`require-in-the-middle`) patch.
+ * `@nestjs/core` and `@nestjs/platform-express` ship as native ESM
+ * (`"type": "module"`), so they load `express` via Node's ESM `import`
+ * mechanism instead, which the CommonJS hook never sees — without more,
+ * `ExpressInstrumentation` (and `PgInstrumentation`, if the app imports its
+ * driver the same way) silently patches nothing, even though tracing starts
+ * up fine and HTTP-level spans still show up. Node's ESM equivalent
+ * (`import-in-the-middle`) needs to be registered separately via
+ * `module.register()`, and — same as the require hook — only affects modules
+ * imported *after* it's installed, so it has to happen here, before the
+ * app's own module graph (which pulls in `@nestjs/platform-express` /
+ * `express`) loads at all.
  */
+import { register } from 'node:module';
+import { loadConfigFile } from '../configuration/configuration.js';
 import { initializeTracing } from './tracing.js';
+
+if (loadConfigFile()?.tracing?.enabled) {
+  register('@opentelemetry/instrumentation/hook.mjs', import.meta.url);
+}
 
 initializeTracing();

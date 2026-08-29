@@ -156,6 +156,13 @@ export function initializeTracing(defaults?: {
       new HttpInstrumentation(),
       new ExpressInstrumentation(),
       new PgInstrumentation(),
+      // NOTE: @opentelemetry/instrumentation-nestjs-core@0.67.0 declares
+      // `supportedVersions = ['>=4.0.0 <12']` (see its build/src/instrumentation.js),
+      // so against the @nestjs/core ^12 used here it silently no-ops — it patches
+      // nothing and throws nothing. Kept anyway so Nest-specific spans resume
+      // automatically once an upstream release adds Nest 12 support; until then,
+      // `ExpressInstrumentation` above is what actually produces the router/
+      // middleware spans for incoming requests.
       new NestInstrumentation(),
     ],
   });
