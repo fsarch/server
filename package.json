@@ -1,6 +1,9 @@
 {
   "name": "@fsarch/server",
   "version": "0.2.2",
+  "workspaces": [
+    "example"
+  ],
   "description": "A TypeScript-based HTTP server library with CLI support",
   "type": "module",
   "module": "dist/index.js",

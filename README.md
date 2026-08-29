@@ -37,6 +37,9 @@ const app = await new FsArchAppBuilder(AppModule, {
 await app.listen(process.env.PORT ?? 3000);
 ```
 
+A runnable, minimal version of this is in [`example/`](example/README.md) —
+a small REST API consuming this package as a local link (`file:..`).
+
 ## Configuration (`config.yaml`)
 
 The library loads configuration from `./config.yaml` by default.
@@ -106,6 +109,13 @@ Distributed tracing is off by default. Enable it via the `tracing` section of
 **You must launch the process with the `@fsarch/server/register` preload for
 auto-instrumentation (HTTP, Express, Postgres, Nest guards/interceptors/handlers)
 to actually take effect:**
+
+> **Note:** `@opentelemetry/instrumentation-nestjs-core@0.67.0` only supports
+> `@nestjs/core` `>=4.0.0 <12`, so it silently no-ops against the `^12` used
+> here — no Nest-specific guard/interceptor/handler spans until an upstream
+> release adds Nest 12 support. `ExpressInstrumentation` is unaffected and
+> still produces router/middleware spans for incoming requests in the
+> meantime.
 
 ```bash
 node --import @fsarch/server/register dist/main.js
