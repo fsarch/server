@@ -65,10 +65,17 @@ auth:
 
 `@Roles(...)` decorators are only enforced once `.enableUac(roles)` is called on the
 `FsArchAppBuilder` (see Quick Start above) — it registers the `RolesGuard` as a global
-guard and validates `config.yaml`'s `uac.users[].permissions` against the given `roles`
-list. Without it, `@Roles(...)` has no runtime effect.
+guard and validates `config.yaml`'s `uac` section against the given `roles` list.
+Without it, `@Roles(...)` has no runtime effect.
 
-Currently supported as static UAC configuration:
+Supported types:
+
+- `static`
+- `token-based`
+
+#### `static`
+
+Permissions are assigned per user id in `config.yaml`:
 
 ```yaml
 uac:
@@ -77,6 +84,37 @@ uac:
     - user_id: abcdef
       permissions:
         - manage_claims
+```
+
+#### `token-based`
+
+Permissions are derived from claims in the caller's (already verified) access
+token instead of a static per-user list. Each entry in `mappings` is checked
+against the decoded JWT payload and, when it matches, grants its
+`permissions` — a plain array of strings, no user list required:
+
+```yaml
+uac:
+  type: token-based
+  mappings:
+    # "includes"/"equals" compare the value at `path` against `value`.
+    # `path` supports dot notation (e.g. realm_access.roles) and `includes`
+    # matches an array element or a substring of a string value.
+    - path: realm_access.roles
+      operator: includes
+      value: 'server:dev'
+      permissions:
+        - dev
+    # "map" grants the permissions of every entry whose `key` is found among
+    # the tokens at `path` (array elements, object keys, or the stringified
+    # value).
+    - path: realm_access.roles
+      operator: map
+      mappings:
+        - key: 'server:admin'
+          permissions:
+            - manage_claims
+            - dev
 ```
 
 ### Database

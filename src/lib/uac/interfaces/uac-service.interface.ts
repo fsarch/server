@@ -1,4 +1,4 @@
 export interface IUacService {
-  hasGrant(subjectId: string, roles: Array<string>): Promise<boolean>;
-  getRoles(subjectId: string): Promise<Array<string>>;
+  hasGrant(subjectId: string, roles: Array<string>, accessToken?: string): Promise<boolean>;
+  getRoles(subjectId: string, accessToken?: string): Promise<Array<string>>;
 }

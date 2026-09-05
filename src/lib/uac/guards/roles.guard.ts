@@ -29,8 +29,10 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
+    const accessToken = user?.getAccessToken?.();
+
     for (const role of requiredRoles) {
-      if (await this.uacService.hasGrant(userId, [role])) {
+      if (await this.uacService.hasGrant(userId, [role], accessToken)) {
         return true;
       }
     }

@@ -29,7 +29,7 @@ type ConfigAuthUserType = {
   password: string;
 };
 
-export type ConfigUacType = ConfigStaticUacType;
+export type ConfigUacType = ConfigStaticUacType | ConfigTokenUacType;
 
 export type ConfigStaticUacType = {
   type: 'static';
@@ -39,6 +39,40 @@ export type ConfigStaticUacType = {
 type ConfigUacUserType = {
   user_id: string;
   permissions: Array<string>;
+};
+
+export type ConfigUacComparisonOperator = 'includes' | 'equals';
+
+/**
+ * Grants the listed `permissions` to every subject whose token has, at
+ * `path`, a value containing (`includes`) or equal to (`equals`) `value`.
+ */
+export type ConfigTokenUacComparisonMapping = {
+  path: string;
+  value: string;
+  operator: ConfigUacComparisonOperator;
+  permissions: Array<string>;
+};
+
+/**
+ * Grants the `permissions` of each matching entry in `mappings` whose `key`
+ * is found among the tokens at `path` (an array is checked element-wise, a
+ * plain object by its keys, anything else by its stringified value).
+ */
+export type ConfigTokenUacMapMapping = {
+  path: string;
+  operator: 'map';
+  mappings: Array<{
+    key: string;
+    permissions: Array<string>;
+  }>;
+};
+
+export type ConfigTokenUacMapping = ConfigTokenUacComparisonMapping | ConfigTokenUacMapMapping;
+
+export type ConfigTokenUacType = {
+  type: 'token-based';
+  mappings: Array<ConfigTokenUacMapping>;
 };
 
 export type ConfigDatabaseType =

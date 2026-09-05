@@ -1,21 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { IUacService } from './interfaces/uac-service.interface.js';
 import { StaticUacService } from './static/static.service.js';
+import { TokenUacService } from './token/token.service.js';
+import { ModuleConfigurationService } from '../configuration/module/module-configuration.service.js';
+import { ConfigUacType } from '../configuration/config.type.js';
 
 @Injectable()
 export class UacService implements IUacService {
-  private readonly uacService?: IUacService;
+  constructor(
+    @Inject('UAC_CONFIG')
+    private readonly uacConfigService: ModuleConfigurationService<ConfigUacType>,
+    private readonly staticUacService: StaticUacService,
+    private readonly tokenUacService: TokenUacService,
+  ) {}
 
-  constructor(private readonly staticUacService: StaticUacService) {
-    const authType = 'static';
-    this.uacService = authType === 'static' ? staticUacService : undefined;
+  private getUacService(): IUacService {
+    return this.uacConfigService.get('type') === 'token-based'
+      ? this.tokenUacService
+      : this.staticUacService;
   }
 
-  async hasGrant(subjectId: string, roles: Array<string>): Promise<boolean> {
-    return await this.uacService?.hasGrant(subjectId, roles) ?? false;
+  async hasGrant(subjectId: string, roles: Array<string>, accessToken?: string): Promise<boolean> {
+    return await this.getUacService().hasGrant(subjectId, roles, accessToken) ?? false;
   }
 
-  async getRoles(subjectId: string): Promise<Array<string>> {
-    return await this.uacService?.getRoles(subjectId) ?? [];
+  async getRoles(subjectId: string, accessToken?: string): Promise<Array<string>> {
+    return await this.getUacService().getRoles(subjectId, accessToken) ?? [];
   }
 }
