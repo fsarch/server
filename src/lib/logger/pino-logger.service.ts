@@ -1,6 +1,7 @@
 import { Injectable, Optional, Scope, ConsoleLogger } from '@nestjs/common';
 import { isErrorLike, serializeError } from 'serialize-error';
 import pino, { type Logger, type LevelWithSilent } from 'pino';
+import { context as otelContext, trace as otelTrace } from '@opentelemetry/api';
 
 const LOG_LEVELS: Array<LevelWithSilent> = [
   'trace',
@@ -30,6 +31,54 @@ function resolveLogLevel(): LevelWithSilent {
   return configuredLevel;
 }
 
+type LogFormat = 'json' | 'pretty';
+
+const LOG_FORMATS: Array<LogFormat> = ['json', 'pretty'];
+const DEFAULT_LOG_FORMAT: LogFormat = 'json';
+
+/**
+ * `json` (the default) is what every clustered/production deployment must
+ * use, since log aggregators (Loki, ELK, ...) parse stdout as one JSON
+ * object per line. `pretty` is opt-in, for local development only, and
+ * pipes through `pino-pretty`.
+ */
+function resolveLogFormat(): LogFormat {
+  const configuredFormat = process.env.LOG_FORMAT?.toLowerCase() as LogFormat | undefined;
+
+  if (!configuredFormat) {
+    return DEFAULT_LOG_FORMAT;
+  }
+
+  if (!LOG_FORMATS.includes(configuredFormat)) {
+    console.warn(
+      `Invalid LOG_FORMAT "${configuredFormat}", falling back to "${DEFAULT_LOG_FORMAT}". Valid values: ${LOG_FORMATS.join(', ')}`,
+    );
+    return DEFAULT_LOG_FORMAT;
+  }
+
+  return configuredFormat;
+}
+
+/**
+ * Pulls `traceId`/`spanId` off the currently active OpenTelemetry span (set
+ * up by `initializeTracing()`/the `@fsarch/server/register` preload), so
+ * every log line emitted while a span is active can be correlated with the
+ * trace it happened in. Returns an empty object outside of any span (e.g.
+ * tracing disabled, or code running before/after a request).
+ */
+function activeTraceContext(): { traceId?: string; spanId?: string } {
+  const spanContext = otelTrace.getSpanContext(otelContext.active());
+
+  if (!spanContext) {
+    return {};
+  }
+
+  return {
+    traceId: spanContext.traceId,
+    spanId: spanContext.spanId,
+  };
+}
+
 @Injectable({ scope: Scope.TRANSIENT })
 export class PinoLogger extends ConsoleLogger {
   public static Instance = new PinoLogger();
@@ -42,11 +91,18 @@ export class PinoLogger extends ConsoleLogger {
 
     this.section = section || '';
 
+    const format = resolveLogFormat();
+
     this.pino = pino.pino({
       level: resolveLogLevel(),
       base: undefined,
       timestamp: false,
       messageKey: 'message',
+      mixin: activeTraceContext,
+      transport:
+        format === 'pretty'
+          ? { target: 'pino-pretty', options: { colorize: true } }
+          : undefined,
     });
   }
 
@@ -56,12 +112,7 @@ export class PinoLogger extends ConsoleLogger {
       logData.error = serializeError(logData.error);
     }
 
-    console.error(
-      JSON.stringify({
-        message,
-        data,
-      }),
-    );
+    this.pino.error(logData, message);
   }
 
   public log(message: any, ...args: any[]) {
