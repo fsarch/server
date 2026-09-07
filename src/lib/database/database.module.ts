@@ -6,6 +6,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DATABASE_CONFIG_VALIDATOR } from './database-config.validator.js';
 import { ConfigDatabaseType } from '../configuration/config.type.js';
 import { EntitySchema } from 'typeorm';
+import { TypeOrmPinoLogger } from './typeorm-pino-logger.js';
 
 export type DatabaseModuleOptions = {
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -37,6 +38,7 @@ export class DatabaseModule {
               migrationsRun: true,
               synchronize: false,
               logging: ['query', 'error'],
+              logger: new TypeOrmPinoLogger(),
             };
 
             if (databaseConfig.type === 'sqlite') {
