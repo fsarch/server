@@ -116,7 +116,7 @@ export class PinoLogger extends ConsoleLogger {
   }
 
   public log(message: any, ...args: any[]) {
-    const context = this.section ?? args.pop();
+    const context = this.section || args.pop();
     const data = args.shift();
 
     this.pino.info(
@@ -129,7 +129,7 @@ export class PinoLogger extends ConsoleLogger {
   }
 
   public error(message: any, ...args: any[]) {
-    const context = this.section ?? args.pop();
+    const context = this.section || args.pop();
     const data = args.shift();
 
     const logData: Record<string, unknown> = {
@@ -150,7 +150,7 @@ export class PinoLogger extends ConsoleLogger {
   }
 
   public warn(message: any, ...args: any[]) {
-    const context = this.section ?? args.pop();
+    const context = this.section || args.pop();
     const data = args.shift();
 
     this.pino.warn(
@@ -163,7 +163,7 @@ export class PinoLogger extends ConsoleLogger {
   }
 
   public debug(message: any, ...args: any[]) {
-    const context = this.section ?? args.pop();
+    const context = this.section || args.pop();
     const data = args.shift();
 
     this.pino.debug(
@@ -176,7 +176,7 @@ export class PinoLogger extends ConsoleLogger {
   }
 
   public verbose(message: any, ...args: any[]) {
-    const context = this.section ?? args.pop();
+    const context = this.section || args.pop();
     const data = args.shift();
 
     this.pino.trace(
@@ -189,7 +189,7 @@ export class PinoLogger extends ConsoleLogger {
   }
 
   public critical(message: any, ...args: any[]) {
-    const context = this.section ?? args.pop();
+    const context = this.section || args.pop();
     const data = args.shift();
 
     this.pino.fatal(
