@@ -33,6 +33,10 @@
       "import": "./dist/lib/deletion/index.js",
       "types": "./dist/lib/deletion/index.d.ts"
     },
+    "./custom-resource": {
+      "import": "./dist/lib/custom-resource/index.js",
+      "types": "./dist/lib/custom-resource/index.d.ts"
+    },
     "./tracing": {
       "import": "./dist/lib/tracing/index.js",
       "types": "./dist/lib/tracing/index.d.ts"

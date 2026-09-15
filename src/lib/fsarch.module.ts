@@ -10,6 +10,10 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
 import { DeletionModule } from "./deletion/deletion.module.js";
 import { TracingModule } from "./tracing/tracing.module.js";
+import {
+  CustomResourceModule,
+  CustomResourceModuleOptions,
+} from "./custom-resource/custom-resource.module.js";
 
 type FSArchOptions = {
   auth?: {};
@@ -18,6 +22,7 @@ type FSArchOptions = {
   };
   database?: DatabaseModuleOptions;
   deletion?: {};
+  customResource?: CustomResourceModuleOptions;
 };
 
 @Global()
@@ -48,6 +53,10 @@ export class FsarchModule {
 
     if (options.deletion) {
       imports.push(DeletionModule.register(options.deletion));
+    }
+
+    if (options.customResource) {
+      imports.push(CustomResourceModule.forRoot(options.customResource));
     }
 
     return {

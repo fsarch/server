@@ -7,6 +7,7 @@ import { FsarchModule } from "./fsarch.module.js";
 import { AuthExceptionFilter } from "./auth/errors/AuthExceptionFilter.js";
 import { AuthService } from "./auth/auth.service.js";
 import { initializeTracing } from "./tracing/tracing.js";
+import { TCustomResourceDefinition } from "./custom-resource/custom-resource.types.js";
 
 type SwaggerOptionsType = {
   path?: string;
@@ -23,6 +24,7 @@ export class FsArchAppBuilder {
   private authOptions?: {};
   private deletionOptions?: {};
   private uacOptions?: { roles: Array<string> };
+  private customResources: Array<TCustomResourceDefinition> = [];
   private readonly httpMethods = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
 
   constructor(private readonly baseModule: IEntryModule, private readonly info: { name: string; version: string }) {
@@ -51,6 +53,11 @@ export class FsArchAppBuilder {
 
   enableUac(roles: Array<string>): this {
     this.uacOptions = { roles };
+    return this;
+  }
+
+  addCustomResource(resource: TCustomResourceDefinition): this {
+    this.customResources.push(resource);
     return this;
   }
 
@@ -108,6 +115,10 @@ export class FsArchAppBuilder {
           database: this.databaseOptions,
           deletion: this.deletionOptions,
           uac: this.uacOptions,
+          customResource:
+            this.customResources.length > 0
+              ? { resources: this.customResources }
+              : undefined,
         }),
       ],
     })

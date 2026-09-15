@@ -775,6 +775,48 @@ bootstrap().catch((error) => {
 });
 ```
 
+### 5.3 Custom Resource (optional)
+
+`.addCustomResource()` registriert einen `GET /.meta/custom-resources`-Endpunkt, über den der Service bekannt gibt, welche Resource-Typen er anbietet und wie man sie listet bzw. einzeln abruft (Path, HTTP-Methode, Auth-Strategie) — ohne dass Konsumenten (z. B. ein gemeinsames Frontend) die Routen pro Service hart codieren müssen. Anders als Auth/UAC/Database läuft das **nicht** über `config.yml`, sondern direkt im Code — ein Aufruf pro Resource-Typ, analog zu `.addSwagger()`:
+
+```typescript
+const app = await new FsArchAppBuilder(AppModule, {
+  name: 'My-Microservice',
+  version: '1.0.0',
+})
+  // ... addSwagger(), enableAuth(), setDatabase(), enableSoftDeletion() ...
+  .addCustomResource({
+    id: 'user',
+    name: 'User',
+    description: 'Users managed by this service.',
+    apiRoutes: {
+      list: {
+        request: {
+          path: '/users',
+          method: 'GET',
+          auth: { type: 'credential-propagation' },
+        },
+        enablePagination: true,
+      },
+      get: {
+        request: {
+          path: '/users/{{id}}',
+          method: 'GET',
+          auth: { type: 'credential-propagation' },
+        },
+      },
+    },
+  })
+  .build();
+```
+
+**Wichtig:**
+- `id` muss `^[a-z0-9_]+$` entsprechen (nur Kleinbuchstaben, Ziffern, `_`) und über alle registrierten Resources eindeutig sein — bei Verstoß startet die App nicht (Joi-Validierung beim Bootstrap).
+- `path` darf `{{id}}` (die ID der Resource-Instanz selbst) oder `{{$system.crd.[<service-name>].[<custom-resource-id>].id}}` (Referenz auf die ID einer — ggf. fremden — Custom Resource) als Platzhalter enthalten. Diese werden vom Server nicht aufgelöst, nur durchgereicht.
+- Komplett optional — ohne mindestens einen `.addCustomResource()`-Aufruf wird kein `.meta/custom-resources`-Endpunkt registriert.
+
+Details: Abschnitt [„Custom Resource“](./README.md#custom-resource) in der Haupt-README von `@fsarch/server`.
+
 ---
 
 ## 📝 Phase 6: Health Check (optional)
@@ -1122,6 +1164,7 @@ jobs:
 ### [ ] Phase 5: Application Bootstrap
 - [ ] AppModule erstellen
 - [ ] main.ts mit FsArchAppBuilder
+- [ ] Custom Resource registrieren (optional, `.addCustomResource()` je Resource-Typ)
 - [ ] Health Check hinzufügen
 
 ### [ ] Phase 6: Testing
@@ -1338,6 +1381,23 @@ npm run migration:run
 # 8. Tests erstellen (neben den Dateien)
 # src/controllers/product/product.service.spec.ts
 # src/controllers/product/product.controller.spec.ts
+
+# 9. (Optional) Resource über .meta/custom-resources discoverable machen
+# In main.ts, vor .build():
+#   .addCustomResource({
+#     id: 'product',
+#     name: 'Product',
+#     description: 'Products managed by this service.',
+#     apiRoutes: {
+#       list: {
+#         request: { path: '/products', method: 'GET', auth: { type: 'credential-propagation' } },
+#         enablePagination: true,
+#       },
+#       get: {
+#         request: { path: '/products/{{id}}', method: 'GET', auth: { type: 'credential-propagation' } },
+#       },
+#     },
+#   })
 ```
 
 ---

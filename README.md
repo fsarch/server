@@ -32,6 +32,28 @@ const app = await new FsArchAppBuilder(AppModule, {
   .enableAuth()
   .enableUac(['manage_claims'])
   .setDatabase(DATABASE_OPTIONS)
+  .addCustomResource({
+    id: 'part_attachment',
+    name: 'Part Attachment',
+    description: 'Attachments of a part',
+    apiRoutes: {
+      list: {
+        request: {
+          path: '/parts/{{id}}/attachments',
+          method: 'GET',
+          auth: { type: 'credential-propagation' },
+        },
+        enablePagination: true,
+      },
+      get: {
+        request: {
+          path: '/parts/{{id}}/attachments/{{id}}',
+          method: 'GET',
+          auth: { type: 'credential-propagation' },
+        },
+      },
+    },
+  })
   .build();
 
 await app.listen(process.env.PORT ?? 3000);
@@ -326,6 +348,41 @@ async listClaims(): Promise<PaginationResultDto<ClaimDto>> {
   };
 }
 ```
+
+### Custom Resource
+
+Registers a `GET /.meta/custom-resources` endpoint that advertises resource types a client can list/fetch via a generic API, without hardcoding their routes. Add one resource at a time via the builder, the same way `addSwagger()` works:
+
+```ts
+new FsArchAppBuilder(AppModule, { name: 'My-Service', version: '1.0.0' })
+  .addCustomResource({
+    id: 'part_attachment',
+    name: 'Part Attachment',
+    description: 'Attachments of a part',
+    apiRoutes: {
+      list: {
+        request: {
+          path: '/parts/{{id}}/attachments',
+          method: 'GET',
+          auth: { type: 'credential-propagation' },
+        },
+        enablePagination: true,
+      },
+      get: {
+        request: {
+          path: '/parts/{{id}}/attachments/{{id}}',
+          method: 'GET',
+          auth: { type: 'credential-propagation' },
+        },
+      },
+    },
+  })
+  .build();
+```
+
+Each `id` is validated with Joi at bootstrap — it must match `^[a-z0-9_]+$` and be unique across all added resources, otherwise the app fails to start. `path` may contain `{{id}}` (the resource instance's own id) or `{{$system.crd.[<service-name>].[<custom-resource-id>].id}}` (a reference to another custom resource's id, optionally on another service) — these placeholders are served as-is and resolved by the consumer, not by this module.
+
+Without `FsArchAppBuilder`, import `CustomResourceModule` directly from `@fsarch/server/custom-resource` and register it with `CustomResourceModule.forRoot({ resources: [...] })`. See [`src/lib/custom-resource/README.md`](./src/lib/custom-resource/README.md) for the full field reference.
 
 ## CLI
 
