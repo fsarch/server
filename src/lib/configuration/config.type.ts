@@ -36,10 +36,21 @@ export type ConfigStaticUacType = {
   users: Array<ConfigUacUserType>;
 };
 
-type ConfigUacUserType = {
+export type ConfigUacUserType = {
   user_id: string;
-  permissions: Array<string>;
+  permissions: Array<ConfigUacPermissionType>;
 };
+
+/**
+ * A permission grant. A plain string grants the permission for all
+ * resources; the object form scopes it to one or more resource ids.
+ */
+export type ConfigUacPermissionType =
+  | string
+  | {
+      name: string;
+      resource: string | Array<string>;
+    };
 
 export type ConfigUacComparisonOperator = 'includes' | 'equals';
 
@@ -51,7 +62,7 @@ export type ConfigTokenUacComparisonMapping = {
   path: string;
   value: string;
   operator: ConfigUacComparisonOperator;
-  permissions: Array<string>;
+  permissions: Array<ConfigUacPermissionType>;
 };
 
 /**
@@ -64,7 +75,7 @@ export type ConfigTokenUacMapMapping = {
   operator: 'map';
   mappings: Array<{
     key: string;
-    permissions: Array<string>;
+    permissions: Array<ConfigUacPermissionType>;
   }>;
 };
 

@@ -24,6 +24,7 @@ import { CREATE_TOKEN_UAC_CONFIG_VALIDATOR } from './token/token-uac-config.vali
     },
     UacService,
   ],
+  exports: [UacService],
 })
 export class UacModule {
   static register(options: { roles: Array<string> }): DynamicModule {

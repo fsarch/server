@@ -114,4 +114,68 @@ describe('TokenUacService', () => {
 
     expect(await service.getRoles('user1', token)).toEqual(['dev']);
   });
+
+  it('should grant a resource-scoped permission via a comparison mapping', async () => {
+    service = await buildModule([
+      {
+        path: 'realm_access.roles',
+        value: 'server:dev',
+        operator: 'includes',
+        permissions: [{ name: 'write_calendar', resource: ['cal-1', 'cal-2'] }],
+      },
+    ]);
+
+    const token = encodeToken({ realm_access: { roles: ['server:dev'] } });
+
+    expect(await service.hasGrant('user1', ['write_calendar'], token)).toBe(true);
+    expect(await service.hasGrant('user1', ['write_calendar'], token, 'cal-1')).toBe(true);
+    expect(await service.hasGrant('user1', ['write_calendar'], token, 'cal-3')).toBe(false);
+
+    const permission = await service.getPermission('user1', 'write_calendar', token);
+    expect(permission.isGranted()).toBe(true);
+    expect(permission.getResources()?.sort()).toEqual(['cal-1', 'cal-2']);
+  });
+
+  it('should union resource-scoped grants for the same permission across mappings', async () => {
+    service = await buildModule([
+      {
+        path: 'realm_access.roles',
+        value: 'server:dev',
+        operator: 'includes',
+        permissions: [{ name: 'write_calendar', resource: 'cal-1' }],
+      },
+      {
+        path: 'scope',
+        value: 'dev',
+        operator: 'equals',
+        permissions: [{ name: 'write_calendar', resource: 'cal-2' }],
+      },
+    ]);
+
+    const token = encodeToken({ realm_access: { roles: ['server:dev'] }, scope: 'dev' });
+
+    const permission = await service.getPermission('user1', 'write_calendar', token);
+    expect(permission.getResources()?.sort()).toEqual(['cal-1', 'cal-2']);
+  });
+
+  it('should make a permission unscoped when any matching mapping grants it without a resource', async () => {
+    service = await buildModule([
+      {
+        path: 'realm_access.roles',
+        operator: 'map',
+        mappings: [
+          {
+            key: 'server:admin',
+            permissions: ['write_calendar', { name: 'write_calendar', resource: 'cal-1' }],
+          },
+        ],
+      },
+    ]);
+
+    const token = encodeToken({ realm_access: { roles: ['server:admin'] } });
+
+    const permission = await service.getPermission('user1', 'write_calendar', token);
+    expect(permission.getResources()).toBeNull();
+    expect(await service.hasGrant('user1', ['write_calendar'], token, 'any-resource')).toBe(true);
+  });
 });

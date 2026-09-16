@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { CREATE_UAC_PERMISSION_VALIDATOR } from '../uac-permission.validator.js';
 
 export const CREATE_STATIC_UAC_CONFIG_VALIDATOR = (roles: string[]) =>
   Joi.object({
@@ -7,11 +8,7 @@ export const CREATE_STATIC_UAC_CONFIG_VALIDATOR = (roles: string[]) =>
       Joi.object({
         user_id: Joi.string().required(),
         permissions: Joi.array()
-          .items(
-            Joi.string()
-              .valid(...roles)
-              .required(),
-          )
+          .items(CREATE_UAC_PERMISSION_VALIDATOR(roles))
           .required(),
       }),
     ),

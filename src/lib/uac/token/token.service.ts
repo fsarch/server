@@ -5,7 +5,10 @@ import {
   ConfigTokenUacMapping,
   ConfigTokenUacType,
   ConfigUacComparisonOperator,
+  ConfigUacPermissionType,
 } from '../../configuration/config.type.js';
+import { Permission } from '../../auth/permission.js';
+import { buildGrantMap, grantMapHasGrant, grantMapToRoles, toPermission, TGrantMap } from '../grant-map.util.js';
 
 type TJwtPayload = Record<string, unknown>;
 
@@ -80,13 +83,13 @@ function getMapPathTokens(pathValue: unknown): Array<string> {
   return [];
 }
 
-function resolvePermissionsFromMapping(payload: TJwtPayload, mapping: ConfigTokenUacMapping): Array<string> {
+function resolvePermissionsFromMapping(payload: TJwtPayload, mapping: ConfigTokenUacMapping): Array<ConfigUacPermissionType> {
   const pathValue = getValueByPath(payload, mapping.path);
 
   if (mapping.operator === 'map') {
     const mapKeys = new Set(getMapPathTokens(pathValue));
 
-    const permissions: Array<string> = [];
+    const permissions: Array<ConfigUacPermissionType> = [];
     for (const entry of mapping.mappings) {
       if (mapKeys.has(entry.key)) {
         permissions.push(...entry.permissions);
@@ -118,30 +121,36 @@ export class TokenUacService implements IUacService {
     private readonly uacConfigService: ModuleConfigurationService<ConfigTokenUacType>,
   ) {}
 
-  async hasGrant(subjectId: string, roles: Array<string>, accessToken?: string): Promise<boolean> {
-    const grantedRoles = await this.getRoles(subjectId, accessToken);
-    this.logger.debug(`Roles found for user "${subjectId}": [${grantedRoles.join(', ')}]`);
-
-    return roles.some((role) => grantedRoles.includes(role));
-  }
-
-  async getRoles(subjectId: string, accessToken?: string): Promise<Array<string>> {
+  private getGrantMap(accessToken?: string): TGrantMap {
     if (!accessToken) {
-      return [];
+      return new Map();
     }
 
     const payload = decodeJwtPayload(accessToken);
     if (!payload) {
-      return [];
+      return new Map();
     }
 
-    const permissions = new Set<string>();
+    const entries: Array<ConfigUacPermissionType> = [];
     for (const mapping of this.uacConfigService.get('mappings')) {
-      for (const permission of resolvePermissionsFromMapping(payload, mapping)) {
-        permissions.add(permission);
-      }
+      entries.push(...resolvePermissionsFromMapping(payload, mapping));
     }
 
-    return [...permissions];
+    return buildGrantMap(entries);
+  }
+
+  async hasGrant(subjectId: string, roles: Array<string>, accessToken?: string, resource?: string): Promise<boolean> {
+    const grantMap = this.getGrantMap(accessToken);
+    this.logger.debug(`Roles found for user "${subjectId}": [${grantMapToRoles(grantMap).join(', ')}]`);
+
+    return roles.some((role) => grantMapHasGrant(grantMap, role, resource));
+  }
+
+  async getRoles(subjectId: string, accessToken?: string): Promise<Array<string>> {
+    return grantMapToRoles(this.getGrantMap(accessToken));
+  }
+
+  async getPermission(subjectId: string, name: string, accessToken?: string): Promise<Permission> {
+    return toPermission(this.getGrantMap(accessToken), name);
   }
 }

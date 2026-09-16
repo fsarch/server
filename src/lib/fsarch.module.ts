@@ -45,6 +45,7 @@ export class FsarchModule {
 
     if (options.uac) {
       imports.push(UacModule.register(options.uac));
+      exports.push(UacModule);
     }
 
     if (options.database) {

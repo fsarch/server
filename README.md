@@ -139,6 +139,50 @@ uac:
             - dev
 ```
 
+#### Resource-scoped permissions
+
+A permission entry can also be an object naming one or more resource ids it's
+scoped to, instead of a plain string. This works the same way under `static`
+users and under `token-based` mappings (both the `map` and comparison
+shapes):
+
+```yaml
+uac:
+  type: static
+  users:
+    - user_id: "7fe12e4a-3763-4930-9234-17bb7ab95613"
+      permissions:
+        - read_calendar # unscoped — granted for every resource
+        - name: write_calendar
+          resource:
+            - 'calendar-id-1'
+            - 'calendar-id-2'
+```
+
+A subject can hold the same permission name multiple times with different
+resources (they union), and an unscoped occurrence of a name always wins over
+scoped ones — the subject then holds that permission for every resource.
+
+`@Roles(...)` can require a specific resource by passing an object whose
+`resource` is a resolver evaluated against the current request — see the
+controller example under Exports & Usage → UAC below. When the decorator
+requirement doesn't specify a resource, any grant of that name — scoped or
+not — satisfies it; when it does, only an unscoped grant or one whose
+resource list includes the resolved value satisfies it.
+
+Granted resources are read through a `Permission` object, never as a flat
+array, obtained either via `user.getPermission(name)` (on the `IUser`/`User`
+object, e.g. from `@UserData()`) or via `UacService.getPermission(subjectId,
+name, accessToken)` injected directly into your own services (`UacService`
+is exported once `.enableUac(...)` is used):
+
+```ts
+const permission = await user.getPermission('write_calendar');
+permission.isGranted(); // boolean
+permission.getResources(); // string[] | null — null means "all resources"
+permission.hasResource('calendar-id-1'); // boolean
+```
+
 ### Database
 
 Supported types:
@@ -311,7 +355,7 @@ import { AuthGuard, Public, UserData } from '@fsarch/server/auth';
 ### UAC
 
 ```ts
-import { Roles } from '@fsarch/server/uac';
+import { Roles, UacService, Permission } from '@fsarch/server/uac';
 ```
 
 ### Tracing
@@ -346,6 +390,32 @@ async listClaims(): Promise<PaginationResultDto<ClaimDto>> {
       totalPages: 0,
     },
   };
+}
+```
+
+A resource-scoped requirement mixes freely with plain string ones in the same
+`@Roles(...)` call — the `resource` resolver receives the current request:
+
+```ts
+@Put(':calendarId')
+@UseGuards(AuthGuard)
+@Roles({ name: 'write_calendar', resource: (request) => request.params.calendarId })
+async updateCalendar(@Param('calendarId') calendarId: string): Promise<void> {
+  // only reachable when the caller holds `write_calendar` unscoped, or
+  // scoped to this specific `calendarId`
+}
+```
+
+`UacService` (once `.enableUac(...)` is used) is injectable directly, and
+`user.getPermission(name)` is available on the `IUser`/`User` object obtained
+via `@UserData()` — both return the same `Permission`:
+
+```ts
+@Get()
+@UseGuards(AuthGuard)
+async listWritableCalendars(@UserData() user: User): Promise<string[]> {
+  const permission = await user.getPermission('write_calendar');
+  return permission.getResources() ?? []; // null (all resources) → [] here
 }
 ```
 

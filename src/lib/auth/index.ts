@@ -13,3 +13,7 @@ export {
 export {
   User,
 } from './user.js';
+
+export {
+  Permission,
+} from './permission.js';

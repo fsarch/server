@@ -1,8 +1,11 @@
 import type { Request } from "express";
+import type { Permission } from '../permission.js';
 
 export interface IUser {
   getId(): string | undefined;
   getAccessToken(): string;
+  getPermission(name: string): Promise<Permission>;
+  setPermissionResolver?(resolver: (name: string) => Promise<Permission>): void;
 }
 
 export type TOidcMetadata = {

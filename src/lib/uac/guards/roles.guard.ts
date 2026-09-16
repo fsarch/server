@@ -1,7 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Role } from '../../auth/role.enum.js';
-import { ROLES_KEY } from '../decorators/roles.decorator.js';
+import { ROLES_KEY, TRoleRequirement } from '../decorators/roles.decorator.js';
 import { UacService } from '../uac.service.js';
 import { IUser } from "../../auth/types/auth-service.type.js";
 
@@ -15,30 +14,40 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+    const request = context.switchToHttp().getRequest();
+    const user = request.user as IUser | undefined;
+    const userId = user?.getId?.();
+    const accessToken = user?.getAccessToken?.();
+
+    if (user && userId) {
+      user.setPermissionResolver?.((name) => this.uacService.getPermission(userId, name, accessToken));
+    }
+
+    const requiredRoles = this.reflector.getAllAndOverride<Array<TRoleRequirement>>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
     if (!requiredRoles) {
       return true;
     }
-    const user = context.switchToHttp().getRequest().user as IUser | undefined;
-    const userId = user?.getId?.();
 
     if (!userId) {
       return false;
     }
 
-    const accessToken = user?.getAccessToken?.();
+    for (const requirement of requiredRoles) {
+      const name = typeof requirement === 'string' ? requirement : requirement.name;
+      const resource = typeof requirement === 'string' ? undefined : requirement.resource(request);
 
-    for (const role of requiredRoles) {
-      if (await this.uacService.hasGrant(userId, [role], accessToken)) {
+      if (await this.uacService.hasGrant(userId, [name], accessToken, resource)) {
         return true;
       }
     }
 
     this.logger.warn(
-      `Access denied for user "${userId}": missing required role(s) [${requiredRoles.join(', ')}]`,
+      `Access denied for user "${userId}": missing required role(s) [${requiredRoles
+        .map((requirement) => (typeof requirement === 'string' ? requirement : requirement.name))
+        .join(', ')}]`,
     );
 
     return false;

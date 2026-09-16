@@ -1,6 +1,5 @@
 import Joi from 'joi';
-
-const CREATE_UAC_PERMISSION_VALIDATOR = (roles: string[]) => Joi.string().valid(...roles).required();
+import { CREATE_UAC_PERMISSION_VALIDATOR } from '../uac-permission.validator.js';
 
 const CREATE_MAP_MAPPING_VALIDATOR = (roles: string[]) =>
   Joi.object({
