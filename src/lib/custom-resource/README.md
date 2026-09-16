@@ -134,7 +134,7 @@ Authentication is whatever the host application enforces globally (e.g. via `Aut
 `path` and `queryParams` values may contain placeholders wrapped in `{{ }}` (chosen over `##` to avoid clashing with `#` as a YAML/Markdown comment marker, and because `{{}}` is the common templating convention):
 
 - `{{id}}` — the id of the resource instance itself.
-- `{{$system.crd.[<custom-resource-service-name>].[<custom-resource-id>].id}}` — a reference to the id of another custom resource definition. `<custom-resource-service-name>` is optional and only needed when referencing a custom resource defined by a different service.
+- `{{$system.crd.<custom-resource-service-name>.<custom-resource-id>.id}}` — a reference to the id of another custom resource definition. `<custom-resource-service-name>` is optional and only needed when referencing a custom resource defined by a different service.
 - `{{query}}` — the search term the caller is searching for. Only meaningful within `apiRoutes.search` (e.g. as a `queryParams` value, `{ q: '{{query}}' }`, or embedded in `path`).
 
 This module does **not** resolve these placeholders itself — it only serves the definitions as configured. Resolution is the responsibility of the consumer (e.g. a frontend) that reads this endpoint.
