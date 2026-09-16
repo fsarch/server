@@ -365,6 +365,7 @@ new FsArchAppBuilder(AppModule, { name: 'My-Service', version: '1.0.0' })
           path: '/parts/{{id}}/attachments',
           method: 'GET',
           auth: { type: 'credential-propagation' },
+          queryParams: { type: 'image' },
         },
         enablePagination: true,
       },
@@ -375,12 +376,21 @@ new FsArchAppBuilder(AppModule, { name: 'My-Service', version: '1.0.0' })
           auth: { type: 'credential-propagation' },
         },
       },
+      search: {
+        request: {
+          path: '/parts/{{id}}/attachments/search',
+          method: 'GET',
+          auth: { type: 'credential-propagation' },
+          queryParams: { q: '{{query}}' },
+        },
+        enablePagination: true,
+      },
     },
   })
   .build();
 ```
 
-Each `id` is validated with Joi at bootstrap — it must match `^[a-z0-9_]+$` and be unique across all added resources, otherwise the app fails to start. `path` may contain `{{id}}` (the resource instance's own id) or `{{$system.crd.[<service-name>].[<custom-resource-id>].id}}` (a reference to another custom resource's id, optionally on another service) — these placeholders are served as-is and resolved by the consumer, not by this module.
+Each `id` is validated with Joi at bootstrap — it must match `^[a-z0-9_]+$` and be unique across all added resources, otherwise the app fails to start. `path` and `queryParams` values may contain `{{id}}` (the resource instance's own id), `{{$system.crd.[<service-name>].[<custom-resource-id>].id}}` (a reference to another custom resource's id, optionally on another service), or — only within `apiRoutes.search` — `{{query}}` (the caller's search term). These placeholders are served as-is and resolved by the consumer, not by this module. `apiRoutes.search` is optional and, when present, has the same shape as `apiRoutes.list` (`request` + `enablePagination`); `queryParams` (`Record<string, string | string[]>`) is optional on any request and lets you declare structured query parameters instead of hardcoding a query string into `path`.
 
 Without `FsArchAppBuilder`, import `CustomResourceModule` directly from `@fsarch/server/custom-resource` and register it with `CustomResourceModule.forRoot({ resources: [...] })`. See [`src/lib/custom-resource/README.md`](./src/lib/custom-resource/README.md) for the full field reference.
 

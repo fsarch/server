@@ -6,6 +6,7 @@ export type TCustomResourceRequest = {
   path: string;
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   auth: TCustomResourceAuth;
+  queryParams?: Record<string, string | string[]>;
 };
 
 export type TCustomResourceDefinition = {
@@ -19,6 +20,10 @@ export type TCustomResourceDefinition = {
     };
     get: {
       request: TCustomResourceRequest;
+    };
+    search?: {
+      request: TCustomResourceRequest;
+      enablePagination: boolean;
     };
   };
 };

@@ -17,6 +17,10 @@ const REQUEST_SCHEMA = Joi.object({
   auth: Joi.object({
     type: Joi.string().valid('credential-propagation').required(),
   }).required(),
+  queryParams: Joi.object().pattern(
+    Joi.string(),
+    Joi.alternatives(Joi.string(), Joi.array().items(Joi.string())),
+  ),
 });
 
 const CUSTOM_RESOURCE_SCHEMA = Joi.array()
@@ -33,6 +37,10 @@ const CUSTOM_RESOURCE_SCHEMA = Joi.array()
         get: Joi.object({
           request: REQUEST_SCHEMA.required(),
         }).required(),
+        search: Joi.object({
+          request: REQUEST_SCHEMA.required(),
+          enablePagination: Joi.boolean().required(),
+        }),
       }).required(),
     }),
   )

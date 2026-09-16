@@ -25,6 +25,7 @@ import { CustomResourceModule } from '@fsarch/server/custom-resource';
                 path: '/parts/{{id}}/attachments',
                 method: 'GET',
                 auth: { type: 'credential-propagation' },
+                queryParams: { type: 'image' },
               },
               enablePagination: true,
             },
@@ -34,6 +35,15 @@ import { CustomResourceModule } from '@fsarch/server/custom-resource';
                 method: 'GET',
                 auth: { type: 'credential-propagation' },
               },
+            },
+            search: {
+              request: {
+                path: '/parts/{{id}}/attachments/search',
+                method: 'GET',
+                auth: { type: 'credential-propagation' },
+                queryParams: { q: '{{query}}' },
+              },
+              enablePagination: true,
             },
           },
         },
@@ -68,7 +78,8 @@ Returns all registered resource definitions:
           "request": {
             "path": "/parts/{{id}}/attachments",
             "method": "GET",
-            "auth": { "type": "credential-propagation" }
+            "auth": { "type": "credential-propagation" },
+            "queryParams": { "type": "image" }
           },
           "enablePagination": true
         },
@@ -78,6 +89,15 @@ Returns all registered resource definitions:
             "method": "GET",
             "auth": { "type": "credential-propagation" }
           }
+        },
+        "search": {
+          "request": {
+            "path": "/parts/{{id}}/attachments/search",
+            "method": "GET",
+            "auth": { "type": "credential-propagation" },
+            "queryParams": { "q": "{{query}}" }
+          },
+          "enablePagination": true
         }
       }
     }
@@ -97,21 +117,25 @@ Authentication is whatever the host application enforces globally (e.g. via `Aut
 | `apiRoutes.list.request`            | [`Request`](#request)                 | How to call the endpoint that lists this resource.                                                                     |
 | `apiRoutes.list.enablePagination`   | `boolean`                             | Whether the list endpoint supports pagination.                                                                         |
 | `apiRoutes.get.request`             | [`Request`](#request)                 | How to call the endpoint that fetches a single instance of this resource.                                              |
+| `apiRoutes.search.request`          | [`Request`](#request)                 | Optional. How to call the endpoint that searches instances of this resource. Omit if the resource is not searchable.  |
+| `apiRoutes.search.enablePagination` | `boolean`                             | Optional (required if `apiRoutes.search` is present). Whether the search endpoint supports pagination.                |
 
 ### `Request`
 
-| Field    | Type                                                | Description                                                                                                                                                          |
-| -------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `path`   | `string`                                            | Request path, may contain placeholders (see below).                                                                                                                 |
-| `method` | `'GET' \| 'POST' \| 'PUT' \| 'PATCH' \| 'DELETE'`     | HTTP method to use.                                                                                                                                                  |
-| `auth`   | `{ type: 'credential-propagation' }`                  | Auth strategy: the caller's own credentials are propagated to the downstream request. Currently the only supported type.                                            |
+| Field         | Type                                                | Description                                                                                                                                                          |
+| ------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `path`        | `string`                                            | Request path, may contain placeholders (see below).                                                                                                                 |
+| `method`      | `'GET' \| 'POST' \| 'PUT' \| 'PATCH' \| 'DELETE'`     | HTTP method to use.                                                                                                                                                  |
+| `auth`        | `{ type: 'credential-propagation' }`                  | Auth strategy: the caller's own credentials are propagated to the downstream request. Currently the only supported type.                                            |
+| `queryParams` | `Record<string, string \| string[]>`                | Optional. Static query parameters to send with the request. A value may itself contain placeholders (see below). An array value is sent as a repeated query parameter (`key=a&key=b`). |
 
-### Path Placeholders
+### Placeholders
 
-`path` values may contain placeholders wrapped in `{{ }}` (chosen over `##` to avoid clashing with `#` as a YAML/Markdown comment marker, and because `{{}}` is the common templating convention):
+`path` and `queryParams` values may contain placeholders wrapped in `{{ }}` (chosen over `##` to avoid clashing with `#` as a YAML/Markdown comment marker, and because `{{}}` is the common templating convention):
 
 - `{{id}}` — the id of the resource instance itself.
 - `{{$system.crd.[<custom-resource-service-name>].[<custom-resource-id>].id}}` — a reference to the id of another custom resource definition. `<custom-resource-service-name>` is optional and only needed when referencing a custom resource defined by a different service.
+- `{{query}}` — the search term the caller is searching for. Only meaningful within `apiRoutes.search` (e.g. as a `queryParams` value, `{ q: '{{query}}' }`, or embedded in `path`).
 
 This module does **not** resolve these placeholders itself — it only serves the definitions as configured. Resolution is the responsibility of the consumer (e.g. a frontend) that reads this endpoint.
 

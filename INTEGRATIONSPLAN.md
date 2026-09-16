@@ -805,6 +805,15 @@ const app = await new FsArchAppBuilder(AppModule, {
           auth: { type: 'credential-propagation' },
         },
       },
+      search: {
+        request: {
+          path: '/users/search',
+          method: 'GET',
+          auth: { type: 'credential-propagation' },
+          queryParams: { q: '{{query}}' },
+        },
+        enablePagination: true,
+      },
     },
   })
   .build();
@@ -812,7 +821,8 @@ const app = await new FsArchAppBuilder(AppModule, {
 
 **Wichtig:**
 - `id` muss `^[a-z0-9_]+$` entsprechen (nur Kleinbuchstaben, Ziffern, `_`) und über alle registrierten Resources eindeutig sein — bei Verstoß startet die App nicht (Joi-Validierung beim Bootstrap).
-- `path` darf `{{id}}` (die ID der Resource-Instanz selbst) oder `{{$system.crd.[<service-name>].[<custom-resource-id>].id}}` (Referenz auf die ID einer — ggf. fremden — Custom Resource) als Platzhalter enthalten. Diese werden vom Server nicht aufgelöst, nur durchgereicht.
+- `path` und `queryParams`-Werte dürfen `{{id}}` (die ID der Resource-Instanz selbst), `{{$system.crd.[<service-name>].[<custom-resource-id>].id}}` (Referenz auf die ID einer — ggf. fremden — Custom Resource) oder — nur innerhalb von `apiRoutes.search` — `{{query}}` (der vom Aufrufer übergebene Suchbegriff) als Platzhalter enthalten. Diese werden vom Server nicht aufgelöst, nur durchgereicht.
+- `apiRoutes.search` ist optional und hat, falls angegeben, dieselbe Form wie `apiRoutes.list` (`request` + `enablePagination`). `queryParams` (`Record<string, string | string[]>`) ist auf jedem Request optional und erlaubt strukturierte Query-Parameter statt eines fest in `path` codierten Query-Strings.
 - Komplett optional — ohne mindestens einen `.addCustomResource()`-Aufruf wird kein `.meta/custom-resources`-Endpunkt registriert.
 
 Details: Abschnitt [„Custom Resource“](./README.md#custom-resource) in der Haupt-README von `@fsarch/server`.
