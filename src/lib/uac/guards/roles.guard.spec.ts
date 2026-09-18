@@ -8,9 +8,22 @@ import { Permission } from '../../auth/permission.js';
 
 function buildContext(request: Record<string, unknown>): ExecutionContext {
   return {
+    getType: () => 'http',
     switchToHttp: () => ({
       getRequest: () => request,
     }),
+    getHandler: () => ({}),
+    getClass: () => ({}),
+  } as unknown as ExecutionContext;
+}
+
+// Simulates how @fsarch/server/mcp dispatches a tool call: an 'rpc'-typed execution context
+// whose RPC context exposes the raw HTTP request (the same one AuthGuard already authenticated)
+// via getRawRequest(), rather than switchToHttp().getRequest().
+function buildRpcContext(request: Record<string, unknown>): ExecutionContext {
+  return {
+    getType: () => 'rpc',
+    switchToRpc: () => ({ getContext: () => ({ getRawRequest: () => request }) }),
     getHandler: () => ({}),
     getClass: () => ({}),
   } as unknown as ExecutionContext;
@@ -88,5 +101,26 @@ describe('RolesGuard', () => {
     const resolved = await user.getPermission('write_calendar');
     expect(resolved).toBe(permission);
     expect(getPermission).toHaveBeenCalledWith('user1', 'write_calendar', 'token');
+  });
+
+  it('enforces required roles for an MCP tool call (rpc context) the same way as an HTTP request', async () => {
+    const reflector = { getAllAndOverride: vi.fn().mockReturnValue(['render_pdf']) } as unknown as Reflector;
+    const hasGrant = vi.fn().mockResolvedValue(true);
+    const uacService = { hasGrant, getPermission: vi.fn() } as unknown as UacService;
+    const guard = new RolesGuard(reflector, uacService);
+
+    const context = buildRpcContext({ user: new User({ id: 'user1', accessToken: 'token' }) });
+    expect(await guard.canActivate(context)).toBe(true);
+    expect(hasGrant).toHaveBeenCalledWith('user1', ['render_pdf'], 'token', undefined);
+  });
+
+  it('denies an MCP tool call (rpc context) when the caller lacks the required role', async () => {
+    const reflector = { getAllAndOverride: vi.fn().mockReturnValue(['render_pdf']) } as unknown as Reflector;
+    const hasGrant = vi.fn().mockResolvedValue(false);
+    const uacService = { hasGrant, getPermission: vi.fn() } as unknown as UacService;
+    const guard = new RolesGuard(reflector, uacService);
+
+    const context = buildRpcContext({ user: new User({ id: 'user1', accessToken: 'token' }) });
+    expect(await guard.canActivate(context)).toBe(false);
   });
 });

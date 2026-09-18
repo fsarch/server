@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, Response, UnauthorizedExcept
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 import { AuthService } from '../auth.service.js';
+import { getRequestFromContext } from '../get-request-from-context.util.js';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -19,7 +20,10 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
+    const request = getRequestFromContext(context);
+    if (!request) {
+      return false;
+    }
 
     const user = await this.authService.validateRequest(request);
     if (!user) {

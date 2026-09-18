@@ -11,5 +11,9 @@ export {
 } from './uac.service.js';
 
 export {
+  RolesGuard,
+} from './guards/roles.guard.js';
+
+export {
   Permission,
 } from '../auth/permission.js';

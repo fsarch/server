@@ -53,6 +53,50 @@ export class ManufacturerToolProvider {
 
 `zod` itself is not re-exported (it's a general-purpose schema library, not an MCP-specific decorator) — install it directly if you don't already depend on it.
 
+## Auth & UAC roles on tools
+
+`.enableAuth()`'s `AuthGuard` requires a login for the whole MCP endpoint automatically (see Design
+Notes below) — no extra annotation needed for authentication alone.
+
+Per-tool authorization is different: `@fsarch/server/uac`'s `@Roles(...)` (the same decorator used on
+`@Post()`/`@Get()` HTTP routes) also works on `@Tool()` methods, but — because `RolesGuard` is
+registered globally via `APP_GUARD`, and Nest's global enhancers are not applied to the RPC-typed
+execution context MCP tool calls run in — it only takes effect if the `@McpController()` class also
+carries an explicit `@UseGuards(AuthGuard, RolesGuard)`, exactly the way HTTP controllers already
+spell out `@UseGuards(AuthGuard)` explicitly even though `AuthGuard` is global too:
+
+```ts
+import { McpController, Tool } from '@fsarch/server/mcp';
+import { AuthGuard } from '@fsarch/server/auth';
+import { Roles, RolesGuard } from '@fsarch/server/uac';
+import { UseGuards } from '@nestjs/common';
+import { z } from 'zod';
+
+@McpController()
+@UseGuards(AuthGuard, RolesGuard)
+export class ManufacturerToolProvider {
+  constructor(private readonly manufacturerService: ManufacturerService) {}
+
+  @Tool({
+    name: 'search_manufacturers',
+    description: 'Search manufacturers by name or external ID',
+    parameters: z.object({ search: z.string().optional() }),
+  })
+  @Roles('manage_manufacturers')
+  async searchManufacturers({ search }: { search?: string }) {
+    /* ... */
+  }
+}
+```
+
+Without the explicit `@UseGuards(...)`, `@Roles(...)` on a tool method is silently never enforced —
+the tool stays reachable by any authenticated caller regardless of which UAC permissions they hold.
+
+`@rekog/mcp-nest`'s own `@ToolRoles`/`@ToolScopes` are a separate mechanism (they read an
+OAuth-scope-shaped `roles`/`scope` claim directly off the authenticated user object, checked
+synchronously, no fsarch UAC lookup involved) — prefer fsarch's `@Roles(...)` so tools are governed
+by the same `uac:` config as everything else in the service.
+
 ## Exports
 
 Everything needed to declare and register MCP tools is available from `@fsarch/server/mcp`, so you never need to import `@rekog/mcp-nest` or `@nestjs/microservices` directly for this:
@@ -76,3 +120,12 @@ src/lib/mcp/
 
 - There is no NestJS `DynamicModule` here (mirroring `@rekog/mcp-nest` itself, which dropped `McpModule.forRoot()` in favor of a plain `McpStrategy` object): the strategy has to be connected as a microservice on the `INestApplication` instance (`app.connectMicroservice({ strategy })` + `app.startAllMicroservices()`), which `FsArchAppBuilder.build()` does for you when `.enableMcp()` was called. Tool/resource/prompt providers are still registered as ordinary Nest `controllers` in your own modules.
 - `.enableMcp()` always uses the builder's `name`/`version` for the MCP server identity, for consistency with tracing (`initializeTracing`) and Swagger, which do the same.
+- `AuthGuard`/`RolesGuard` (from `@fsarch/server/auth` and `@fsarch/server/uac`) are transport-aware: on
+  an `ExecutionContext` of type `'rpc'` (how `@rekog/mcp-nest` dispatches `@Tool()` calls, since `@Tool()`
+  is implemented as a real Nest `@MessagePattern()` handler) they read the request via
+  `McpContext#getRawRequest()` instead of `switchToHttp().getRequest()` — the latter would silently
+  return the tool's call arguments instead of a request in an RPC context, since `switchToHttp()` just
+  reads `args[0]` regardless of what the transport actually put there. `getRawRequest()` returns the
+  *same* underlying Express request the outer `McpHttpController` route already ran `AuthGuard` against
+  for this call, so `request.user` set there is visible to a guard re-applied explicitly on the tool
+  provider. See `getRequestFromContext()` in `src/lib/auth/get-request-from-context.util.ts`.
