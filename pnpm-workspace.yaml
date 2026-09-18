@@ -1,0 +1,10 @@
+packages:
+  - 'example'
+
+allowBuilds:
+  # Pure install-time telemetry ping, no functional effect - keep blocked.
+  '@scarf/scarf': false
+  # Compiles the native SQLite binding via node-gyp - required at runtime.
+  better-sqlite3: true
+  # postinstall only prints a semver-style warning to stderr - no effect.
+  protobufjs: false

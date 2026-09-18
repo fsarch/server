@@ -2,15 +2,15 @@
   "name": "fsarch-server-example",
   "version": "0.0.0",
   "private": true,
-  "description": "Minimal REST API built on top of a local @fsarch/server checkout (linked via file:..)",
+  "description": "Minimal REST API built on top of a local @fsarch/server checkout (linked via the pnpm workspace)",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "npm run build && node dist/main.js",
+    "start": "pnpm build && node dist/main.js",
     "dev": "tsc -p tsconfig.json --watch"
   },
   "dependencies": {
-    "@fsarch/server": "file:..",
+    "@fsarch/server": "workspace:*",
     "@nestjs/common": "^12.0.1",
     "@nestjs/core": "^12.0.1",
     "@nestjs/swagger": "^12.0.1",
