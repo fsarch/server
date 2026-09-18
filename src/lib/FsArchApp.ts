@@ -8,6 +8,8 @@ import { AuthExceptionFilter } from "./auth/errors/AuthExceptionFilter.js";
 import { AuthService } from "./auth/auth.service.js";
 import { initializeTracing } from "./tracing/tracing.js";
 import { TCustomResourceDefinition } from "./custom-resource/custom-resource.types.js";
+import { createMcpStrategy, createMcpHttpController, DEFAULT_MCP_ENDPOINT } from "./mcp/mcp.js";
+import { McpModuleOptions } from "./mcp/mcp.types.js";
 
 type SwaggerOptionsType = {
   path?: string;
@@ -25,6 +27,7 @@ export class FsArchAppBuilder {
   private deletionOptions?: {};
   private uacOptions?: { roles: Array<string> };
   private customResources: Array<TCustomResourceDefinition> = [];
+  private mcpOptions?: McpModuleOptions;
   private readonly httpMethods = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
 
   constructor(private readonly baseModule: IEntryModule, private readonly info: { name: string; version: string }) {
@@ -58,6 +61,11 @@ export class FsArchAppBuilder {
 
   addCustomResource(resource: TCustomResourceDefinition): this {
     this.customResources.push(resource);
+    return this;
+  }
+
+  enableMcp(options: McpModuleOptions = {}): this {
+    this.mcpOptions = options;
     return this;
   }
 
@@ -107,6 +115,18 @@ export class FsArchAppBuilder {
 
     const AppModule = this.baseModule;
 
+    // Building the controller here (before `NestFactory.create()`) and
+    // registering it below is what puts the MCP route inside Nest's routing
+    // pipeline, so the app's global `AuthGuard` (from `.enableAuth()`)
+    // actually runs for it — see `createMcpHttpController()`. Skipped only
+    // when the caller brought their own `transports` (e.g. stdio-only, or
+    // their own auth wiring), in which case behavior is unchanged from
+    // before: `createMcpStrategy()` self-mounts whatever was passed.
+    const mcpHttp =
+      this.mcpOptions && !this.mcpOptions.transports
+        ? createMcpHttpController(this.mcpOptions.endpoint ?? DEFAULT_MCP_ENDPOINT)
+        : undefined;
+
     @Module({
       imports: [
         AppModule,
@@ -121,6 +141,7 @@ export class FsArchAppBuilder {
               : undefined,
         }),
       ],
+      controllers: mcpHttp ? [mcpHttp.controller] : [],
     })
     class FsArchAppModule {}
 
@@ -156,6 +177,23 @@ export class FsArchAppBuilder {
         this.setUniqueOperationIds(document);
         SwaggerModule.setup(path ?? 'docs', app, document);
       }
+    }
+
+    if (this.mcpOptions) {
+      const mcpStrategy = createMcpStrategy({
+        name: this.info.name,
+        version: this.info.version,
+        ...this.mcpOptions,
+        // Serve the exact transport instance the guarded controller
+        // delegates to (see above), so the controller isn't left calling
+        // into a transport nothing ever started.
+        ...(mcpHttp ? { transports: [mcpHttp.transport] } : {}),
+      });
+      mcpStrategy.setHttpAdapter(app.getHttpAdapter());
+      app.connectMicroservice({ strategy: mcpStrategy });
+      // Must run before `app.listen()` so the MCP HTTP routes are mounted
+      // before the server starts accepting connections.
+      await app.startAllMicroservices();
     }
 
     return app;

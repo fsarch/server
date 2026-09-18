@@ -364,6 +364,12 @@ import { Roles, UacService, Permission } from '@fsarch/server/uac';
 import { getTracer } from '@fsarch/server/tracing';
 ```
 
+### MCP
+
+```ts
+import { McpController, Tool } from '@fsarch/server/mcp';
+```
+
 ### Pagination (Swagger + DTO)
 
 ```ts
@@ -463,6 +469,42 @@ new FsArchAppBuilder(AppModule, { name: 'My-Service', version: '1.0.0' })
 Each `id` is validated with Joi at bootstrap — it must match `^[a-z0-9_]+$` and be unique across all added resources, otherwise the app fails to start. `path` and `queryParams` values may contain `{{id}}` (the resource instance's own id), `{{$system.crd.[<service-name>].[<custom-resource-id>].id}}` (a reference to another custom resource's id, optionally on another service), or — only within `apiRoutes.search` — `{{query}}` (the caller's search term). These placeholders are served as-is and resolved by the consumer, not by this module. `apiRoutes.search` is optional and, when present, has the same shape as `apiRoutes.list` (`request` + `enablePagination`); `queryParams` (`Record<string, string | string[]>`) is optional on any request and lets you declare structured query parameters instead of hardcoding a query string into `path`.
 
 Without `FsArchAppBuilder`, import `CustomResourceModule` directly from `@fsarch/server/custom-resource` and register it with `CustomResourceModule.forRoot({ resources: [...] })`. See [`src/lib/custom-resource/README.md`](./src/lib/custom-resource/README.md) for the full field reference.
+
+### MCP
+
+Exposes an [MCP](https://modelcontextprotocol.io/) server (tools/resources/prompts) on the same HTTP server, via [`@rekog/mcp-nest`](https://github.com/rekog-labs/MCP-Nest). Enable it with `.enableMcp()`:
+
+```ts
+import { FsArchAppBuilder } from '@fsarch/server';
+
+const app = await new FsArchAppBuilder(AppModule, {
+  name: 'My-Service',
+  version: '1.0.0',
+})
+  .enableMcp()
+  .build();
+```
+
+This serves a Streamable HTTP transport at `/.ai/mcp` by default and advertises the `tools` capability; pass `{ endpoint, capabilities, transports }` to override. Define tools on `@McpController()` classes registered as `controllers` in your own modules, using decorators re-exported from `@fsarch/server/mcp` — no need to add `@rekog/mcp-nest` as a direct dependency:
+
+```ts
+import { McpController, Tool } from '@fsarch/server/mcp';
+import { z } from 'zod';
+
+@McpController()
+export class GreetingToolProvider {
+  @Tool({
+    name: 'greeting-tool',
+    description: 'Returns a greeting',
+    parameters: z.object({ name: z.string().default('World') }),
+  })
+  async sayHello({ name }: { name: string }) {
+    return { content: [{ type: 'text' as const, text: `Hello, ${name}!` }] };
+  }
+}
+```
+
+See [`src/lib/mcp/README.md`](./src/lib/mcp/README.md) for the full list of re-exported decorators/types and design notes.
 
 ## CLI
 

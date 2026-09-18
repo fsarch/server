@@ -31,7 +31,27 @@ export class WellKnownController {
       authorization_servers: authorizationServers,
       jwks_uri: jwksUri,
       bearer_methods_supported: ['header'],
-      scopes_supported: metadata.scopes_supported,
+      // Deliberately not `metadata.scopes_supported`: that's the *authorization
+      // server's* full scope catalog (Keycloak realms typically include
+      // internal scopes like `web-origins`, `acr`, `service_account`, ...).
+      // Advertising it here means OAuth clients doing Dynamic Client
+      // Registration (RFC 7591) against the AS - e.g. an MCP client following
+      // this resource's `authorization_servers` link - request that entire
+      // set as the new client's `scope`, which Keycloak's "Allowed Client
+      // Scopes" registration policy then rejects (403 insufficient_scope) if
+      // it doesn't allow all of them for anonymous registration. `openid` is
+      // the only scope this resource's guard actually depends on (it just
+      // verifies the JWT signature/claims), so that's the baseline we
+      // advertise here. `offline_access` (refresh tokens, so MCP clients
+      // don't need the user to re-authorize every ~5 min) is added on top
+      // only if the authorization server itself lists it as supported -
+      // some realms don't enable it, and requesting an unsupported scope
+      // during Dynamic Client Registration would just trade one 403 for
+      // another.
+      scopes_supported: [
+        'openid',
+        ...(metadata.scopes_supported?.includes('offline_access') ? ['offline_access'] : []),
+      ],
     };
   }
 
