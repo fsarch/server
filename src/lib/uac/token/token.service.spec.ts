@@ -1,15 +1,20 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TokenUacService } from './token.service';
-import { vi } from 'vitest';
-import { ConfigTokenUacMapping } from '../../configuration/config.type';
+import { Test, type TestingModule } from "@nestjs/testing";
+import { vi } from "vitest";
+import { ConfigTokenUacMapping } from "../../configuration/config.type";
+import { TokenUacService } from "./token.service";
 
 function encodeToken(payload: Record<string, unknown>): string {
-  const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' }), 'utf8').toString('base64url');
-  const body = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const header = Buffer.from(
+    JSON.stringify({ alg: "none", typ: "JWT" }),
+    "utf8",
+  ).toString("base64url");
+  const body = Buffer.from(JSON.stringify(payload), "utf8").toString(
+    "base64url",
+  );
   return `${header}.${body}.sig`;
 }
 
-describe('TokenUacService', () => {
+describe("TokenUacService", () => {
   let service: TokenUacService;
 
   const buildModule = async (mappings: Array<ConfigTokenUacMapping>) => {
@@ -17,9 +22,9 @@ describe('TokenUacService', () => {
       providers: [
         TokenUacService,
         {
-          provide: 'UAC_CONFIG',
+          provide: "UAC_CONFIG",
           useValue: {
-            get: vi.fn((key: string) => (key === 'mappings' ? mappings : {})),
+            get: vi.fn((key: string) => (key === "mappings" ? mappings : {})),
           },
         },
       ],
@@ -28,154 +33,188 @@ describe('TokenUacService', () => {
     return module.get<TokenUacService>(TokenUacService);
   };
 
-  it('should be defined', async () => {
+  it("should be defined", async () => {
     service = await buildModule([]);
     expect(service).toBeDefined();
   });
 
-  it('should return no roles without an access token', async () => {
+  it("should return no roles without an access token", async () => {
     service = await buildModule([]);
-    expect(await service.getRoles('user1')).toEqual([]);
-    expect(await service.hasGrant('user1', ['role1'])).toBe(false);
+    expect(await service.getRoles("user1")).toEqual([]);
+    expect(await service.hasGrant("user1", ["role1"])).toBe(false);
   });
 
-  it('should return no roles for a malformed access token', async () => {
+  it("should return no roles for a malformed access token", async () => {
     service = await buildModule([]);
-    expect(await service.getRoles('user1', 'not-a-jwt')).toEqual([]);
+    expect(await service.getRoles("user1", "not-a-jwt")).toEqual([]);
   });
 
   it('should grant permissions via an "includes" comparison mapping', async () => {
     service = await buildModule([
       {
-        path: 'realm_access.roles',
-        value: 'server:dev',
-        operator: 'includes',
-        permissions: ['dev'],
+        path: "realm_access.roles",
+        value: "server:dev",
+        operator: "includes",
+        permissions: ["dev"],
       },
     ]);
 
-    const token = encodeToken({ realm_access: { roles: ['server:dev'] } });
+    const token = encodeToken({ realm_access: { roles: ["server:dev"] } });
 
-    expect(await service.getRoles('user1', token)).toEqual(['dev']);
-    expect(await service.hasGrant('user1', ['dev'], token)).toBe(true);
-    expect(await service.hasGrant('user1', ['other'], token)).toBe(false);
+    expect(await service.getRoles("user1", token)).toEqual(["dev"]);
+    expect(await service.hasGrant("user1", ["dev"], token)).toBe(true);
+    expect(await service.hasGrant("user1", ["other"], token)).toBe(false);
   });
 
   it('should not grant permissions when the "equals" comparison does not match', async () => {
     service = await buildModule([
       {
-        path: 'scope',
-        value: 'admin',
-        operator: 'equals',
-        permissions: ['manage_claims'],
+        path: "scope",
+        value: "admin",
+        operator: "equals",
+        permissions: ["manage_claims"],
       },
     ]);
 
-    const token = encodeToken({ scope: 'user' });
+    const token = encodeToken({ scope: "user" });
 
-    expect(await service.getRoles('user1', token)).toEqual([]);
+    expect(await service.getRoles("user1", token)).toEqual([]);
   });
 
   it('should grant permissions via a "map" mapping', async () => {
     service = await buildModule([
       {
-        path: 'realm_access.roles',
-        operator: 'map',
+        path: "realm_access.roles",
+        operator: "map",
         mappings: [
-          { key: 'server:dev', permissions: ['dev'] },
-          { key: 'server:admin', permissions: ['manage_claims', 'dev'] },
+          { key: "server:dev", permissions: ["dev"] },
+          { key: "server:admin", permissions: ["manage_claims", "dev"] },
         ],
       },
     ]);
 
-    const token = encodeToken({ realm_access: { roles: ['server:admin'] } });
+    const token = encodeToken({ realm_access: { roles: ["server:admin"] } });
 
-    const roles = await service.getRoles('user1', token);
-    expect(roles.sort()).toEqual(['dev', 'manage_claims']);
+    const roles = await service.getRoles("user1", token);
+    expect(roles.sort()).toEqual(["dev", "manage_claims"]);
   });
 
-  it('should deduplicate permissions granted by multiple mappings', async () => {
+  it("should deduplicate permissions granted by multiple mappings", async () => {
     service = await buildModule([
       {
-        path: 'realm_access.roles',
-        value: 'server:dev',
-        operator: 'includes',
-        permissions: ['dev'],
+        path: "realm_access.roles",
+        value: "server:dev",
+        operator: "includes",
+        permissions: ["dev"],
       },
       {
-        path: 'scope',
-        value: 'dev',
-        operator: 'equals',
-        permissions: ['dev'],
+        path: "scope",
+        value: "dev",
+        operator: "equals",
+        permissions: ["dev"],
       },
     ]);
 
-    const token = encodeToken({ realm_access: { roles: ['server:dev'] }, scope: 'dev' });
+    const token = encodeToken({
+      realm_access: { roles: ["server:dev"] },
+      scope: "dev",
+    });
 
-    expect(await service.getRoles('user1', token)).toEqual(['dev']);
+    expect(await service.getRoles("user1", token)).toEqual(["dev"]);
   });
 
-  it('should grant a resource-scoped permission via a comparison mapping', async () => {
+  it("should grant a resource-scoped permission via a comparison mapping", async () => {
     service = await buildModule([
       {
-        path: 'realm_access.roles',
-        value: 'server:dev',
-        operator: 'includes',
-        permissions: [{ name: 'write_calendar', resource: ['cal-1', 'cal-2'] }],
+        path: "realm_access.roles",
+        value: "server:dev",
+        operator: "includes",
+        permissions: [{ name: "write_calendar", resource: ["cal-1", "cal-2"] }],
       },
     ]);
 
-    const token = encodeToken({ realm_access: { roles: ['server:dev'] } });
+    const token = encodeToken({ realm_access: { roles: ["server:dev"] } });
 
-    expect(await service.hasGrant('user1', ['write_calendar'], token)).toBe(true);
-    expect(await service.hasGrant('user1', ['write_calendar'], token, 'cal-1')).toBe(true);
-    expect(await service.hasGrant('user1', ['write_calendar'], token, 'cal-3')).toBe(false);
+    expect(await service.hasGrant("user1", ["write_calendar"], token)).toBe(
+      true,
+    );
+    expect(
+      await service.hasGrant("user1", ["write_calendar"], token, "cal-1"),
+    ).toBe(true);
+    expect(
+      await service.hasGrant("user1", ["write_calendar"], token, "cal-3"),
+    ).toBe(false);
 
-    const permission = await service.getPermission('user1', 'write_calendar', token);
+    const permission = await service.getPermission(
+      "user1",
+      "write_calendar",
+      token,
+    );
     expect(permission.isGranted()).toBe(true);
-    expect(permission.getResources()?.sort()).toEqual(['cal-1', 'cal-2']);
+    expect(permission.getResources()?.sort()).toEqual(["cal-1", "cal-2"]);
   });
 
-  it('should union resource-scoped grants for the same permission across mappings', async () => {
+  it("should union resource-scoped grants for the same permission across mappings", async () => {
     service = await buildModule([
       {
-        path: 'realm_access.roles',
-        value: 'server:dev',
-        operator: 'includes',
-        permissions: [{ name: 'write_calendar', resource: 'cal-1' }],
+        path: "realm_access.roles",
+        value: "server:dev",
+        operator: "includes",
+        permissions: [{ name: "write_calendar", resource: "cal-1" }],
       },
       {
-        path: 'scope',
-        value: 'dev',
-        operator: 'equals',
-        permissions: [{ name: 'write_calendar', resource: 'cal-2' }],
+        path: "scope",
+        value: "dev",
+        operator: "equals",
+        permissions: [{ name: "write_calendar", resource: "cal-2" }],
       },
     ]);
 
-    const token = encodeToken({ realm_access: { roles: ['server:dev'] }, scope: 'dev' });
+    const token = encodeToken({
+      realm_access: { roles: ["server:dev"] },
+      scope: "dev",
+    });
 
-    const permission = await service.getPermission('user1', 'write_calendar', token);
-    expect(permission.getResources()?.sort()).toEqual(['cal-1', 'cal-2']);
+    const permission = await service.getPermission(
+      "user1",
+      "write_calendar",
+      token,
+    );
+    expect(permission.getResources()?.sort()).toEqual(["cal-1", "cal-2"]);
   });
 
-  it('should make a permission unscoped when any matching mapping grants it without a resource', async () => {
+  it("should make a permission unscoped when any matching mapping grants it without a resource", async () => {
     service = await buildModule([
       {
-        path: 'realm_access.roles',
-        operator: 'map',
+        path: "realm_access.roles",
+        operator: "map",
         mappings: [
           {
-            key: 'server:admin',
-            permissions: ['write_calendar', { name: 'write_calendar', resource: 'cal-1' }],
+            key: "server:admin",
+            permissions: [
+              "write_calendar",
+              { name: "write_calendar", resource: "cal-1" },
+            ],
           },
         ],
       },
     ]);
 
-    const token = encodeToken({ realm_access: { roles: ['server:admin'] } });
+    const token = encodeToken({ realm_access: { roles: ["server:admin"] } });
 
-    const permission = await service.getPermission('user1', 'write_calendar', token);
+    const permission = await service.getPermission(
+      "user1",
+      "write_calendar",
+      token,
+    );
     expect(permission.getResources()).toBeNull();
-    expect(await service.hasGrant('user1', ['write_calendar'], token, 'any-resource')).toBe(true);
+    expect(
+      await service.hasGrant(
+        "user1",
+        ["write_calendar"],
+        token,
+        "any-resource",
+      ),
+    ).toBe(true);
   });
 });

@@ -1,27 +1,33 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { IUacService } from '../interfaces/uac-service.interface.js';
-import { ModuleConfigurationService } from '../../configuration/module/module-configuration.service.js';
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Permission } from "../../auth/permission.js";
 import {
   ConfigTokenUacMapping,
   ConfigTokenUacType,
   ConfigUacComparisonOperator,
   ConfigUacPermissionType,
-} from '../../configuration/config.type.js';
-import { Permission } from '../../auth/permission.js';
-import { buildGrantMap, grantMapHasGrant, grantMapToRoles, toPermission, TGrantMap } from '../grant-map.util.js';
+} from "../../configuration/config.type.js";
+import { ModuleConfigurationService } from "../../configuration/module/module-configuration.service.js";
+import {
+  buildGrantMap,
+  grantMapHasGrant,
+  grantMapToRoles,
+  type TGrantMap,
+  toPermission,
+} from "../grant-map.util.js";
+import { IUacService } from "../interfaces/uac-service.interface.js";
 
 type TJwtPayload = Record<string, unknown>;
 
 function decodeJwtPayload(accessToken: string): TJwtPayload | null {
-  const parts = accessToken.split('.');
+  const parts = accessToken.split(".");
   if (parts.length < 2) {
     return null;
   }
 
   try {
-    const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
+    const payloadJson = Buffer.from(parts[1], "base64url").toString("utf8");
     const payload = JSON.parse(payloadJson);
-    if (!payload || typeof payload !== 'object') {
+    if (!payload || typeof payload !== "object") {
       return null;
     }
 
@@ -32,15 +38,13 @@ function decodeJwtPayload(accessToken: string): TJwtPayload | null {
 }
 
 function getValueByPath(payload: TJwtPayload, path: string): unknown {
-  return path
-    .split('.')
-    .reduce<unknown>((currentValue, key) => {
-      if (currentValue === null || typeof currentValue !== 'object') {
-        return undefined;
-      }
+  return path.split(".").reduce<unknown>((currentValue, key) => {
+    if (currentValue === null || typeof currentValue !== "object") {
+      return undefined;
+    }
 
-      return (currentValue as Record<string, unknown>)[key];
-    }, payload);
+    return (currentValue as Record<string, unknown>)[key];
+  }, payload);
 }
 
 function evaluateOperator(
@@ -48,19 +52,19 @@ function evaluateOperator(
   expectedValue: string,
   operator: ConfigUacComparisonOperator,
 ): boolean {
-  if (operator === 'includes') {
+  if (operator === "includes") {
     if (Array.isArray(pathValue)) {
       return pathValue.some((value) => `${value}` === expectedValue);
     }
 
-    if (typeof pathValue === 'string') {
+    if (typeof pathValue === "string") {
       return pathValue.includes(expectedValue);
     }
 
     return false;
   }
 
-  if (operator === 'equals') {
+  if (operator === "equals") {
     return `${pathValue}` === expectedValue;
   }
 
@@ -72,21 +76,28 @@ function getMapPathTokens(pathValue: unknown): Array<string> {
     return pathValue.map((value) => `${value}`);
   }
 
-  if (typeof pathValue === 'string' || typeof pathValue === 'number' || typeof pathValue === 'boolean') {
+  if (
+    typeof pathValue === "string" ||
+    typeof pathValue === "number" ||
+    typeof pathValue === "boolean"
+  ) {
     return [`${pathValue}`];
   }
 
-  if (pathValue && typeof pathValue === 'object') {
+  if (pathValue && typeof pathValue === "object") {
     return Object.keys(pathValue as Record<string, unknown>);
   }
 
   return [];
 }
 
-function resolvePermissionsFromMapping(payload: TJwtPayload, mapping: ConfigTokenUacMapping): Array<ConfigUacPermissionType> {
+function resolvePermissionsFromMapping(
+  payload: TJwtPayload,
+  mapping: ConfigTokenUacMapping,
+): Array<ConfigUacPermissionType> {
   const pathValue = getValueByPath(payload, mapping.path);
 
-  if (mapping.operator === 'map') {
+  if (mapping.operator === "map") {
     const mapKeys = new Set(getMapPathTokens(pathValue));
 
     const permissions: Array<ConfigUacPermissionType> = [];
@@ -117,7 +128,7 @@ export class TokenUacService implements IUacService {
   private readonly logger = new Logger(TokenUacService.name);
 
   constructor(
-    @Inject('UAC_CONFIG')
+    @Inject("UAC_CONFIG")
     private readonly uacConfigService: ModuleConfigurationService<ConfigTokenUacType>,
   ) {}
 
@@ -132,25 +143,39 @@ export class TokenUacService implements IUacService {
     }
 
     const entries: Array<ConfigUacPermissionType> = [];
-    for (const mapping of this.uacConfigService.get('mappings')) {
+    for (const mapping of this.uacConfigService.get("mappings")) {
       entries.push(...resolvePermissionsFromMapping(payload, mapping));
     }
 
     return buildGrantMap(entries);
   }
 
-  async hasGrant(subjectId: string, roles: Array<string>, accessToken?: string, resource?: string): Promise<boolean> {
+  async hasGrant(
+    subjectId: string,
+    roles: Array<string>,
+    accessToken?: string,
+    resource?: string,
+  ): Promise<boolean> {
     const grantMap = this.getGrantMap(accessToken);
-    this.logger.debug(`Roles found for user "${subjectId}": [${grantMapToRoles(grantMap).join(', ')}]`);
+    this.logger.debug(
+      `Roles found for user "${subjectId}": [${grantMapToRoles(grantMap).join(", ")}]`,
+    );
 
     return roles.some((role) => grantMapHasGrant(grantMap, role, resource));
   }
 
-  async getRoles(subjectId: string, accessToken?: string): Promise<Array<string>> {
+  async getRoles(
+    _subjectId: string,
+    accessToken?: string,
+  ): Promise<Array<string>> {
     return grantMapToRoles(this.getGrantMap(accessToken));
   }
 
-  async getPermission(subjectId: string, name: string, accessToken?: string): Promise<Permission> {
+  async getPermission(
+    _subjectId: string,
+    name: string,
+    accessToken?: string,
+  ): Promise<Permission> {
     return toPermission(this.getGrantMap(accessToken), name);
   }
 }

@@ -1,6 +1,6 @@
-import { SetMetadata } from '@nestjs/common';
-import { METADATA_KEY } from './constants.js';
-import { HardDeleteContext } from './interfaces/deletion-event.interface.js';
+import { SetMetadata } from "@nestjs/common";
+import { METADATA_KEY } from "./constants.js";
+import { HardDeleteContext } from "./interfaces/deletion-event.interface.js";
 
 /**
  * Method decorator to subscribe to hard deletion events.
@@ -16,16 +16,22 @@ import { HardDeleteContext } from './interfaces/deletion-event.interface.js';
  * ```
  */
 export function OnHardDelete(entity: string) {
-  return function (
+  return (
     target: object,
     propertyKey: string,
     descriptor: TypedPropertyDescriptor<HardDeleteEventHandler>,
-  ) {
-    SetMetadata(METADATA_KEY.ON_DELETION, { entity })(target, propertyKey, descriptor);
+  ) => {
+    SetMetadata(METADATA_KEY.ON_DELETION, { entity })(
+      target,
+      propertyKey,
+      descriptor,
+    );
   };
 }
 
 /**
  * Type for deletion event handler methods
  */
-export type HardDeleteEventHandler = (payload: HardDeleteContext) => void | Promise<void>;
+export type HardDeleteEventHandler = (
+  payload: HardDeleteContext,
+) => void | Promise<void>;

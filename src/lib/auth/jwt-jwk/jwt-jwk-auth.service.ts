@@ -1,38 +1,31 @@
-import {
-  HttpException, HttpStatus,
-  Inject,
-  Injectable,
-  NotImplementedException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { IAuthService } from '../types/auth-service.type.js';
-import { Request } from 'express';
-import { ModuleConfigurationService } from '../../configuration/module/module-configuration.service.js';
-import { ConfigJwtJwkAuthType } from '../../configuration/config.type.js';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { User } from '../user.js';
+import { Inject, Injectable, NotImplementedException } from "@nestjs/common";
+import { Request } from "express";
+import { createRemoteJWKSet, jwtVerify } from "jose";
+import { ConfigJwtJwkAuthType } from "../../configuration/config.type.js";
+import { ModuleConfigurationService } from "../../configuration/module/module-configuration.service.js";
 import { AuthUnauthorizedException } from "../errors/AuthUnauthorizedException.js";
+import { IAuthService } from "../types/auth-service.type.js";
+import { User } from "../user.js";
 
 @Injectable()
 export class JwtJwkAuthService implements IAuthService {
   private jwkSet: ReturnType<typeof createRemoteJWKSet> | null = null;
 
   constructor(
-    @Inject('AUTH_CONFIG')
+    @Inject("AUTH_CONFIG")
     private readonly authConfigService: ModuleConfigurationService<ConfigJwtJwkAuthType>,
-  ) {
-  }
+  ) {}
 
   public async signIn(
-    username: string,
-    password: string,
+    _username: string,
+    _password: string,
   ): Promise<{ accessToken: string }> {
     throw new NotImplementedException();
   }
 
   private async getJwkSet() {
     if (!this.jwkSet) {
-      const jwkUrl = this.authConfigService.get('jwkUrl');
+      const jwkUrl = this.authConfigService.get("jwkUrl");
 
       this.jwkSet = createRemoteJWKSet(new URL(jwkUrl));
     }
@@ -41,8 +34,8 @@ export class JwtJwkAuthService implements IAuthService {
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    const [type, token] = request.headers.authorization?.split(" ") ?? [];
+    return type === "Bearer" ? token : undefined;
   }
 
   public async validateRequest(request: any): Promise<User> {
@@ -53,18 +46,16 @@ export class JwtJwkAuthService implements IAuthService {
 
     const jwkSet = await this.getJwkSet();
 
-    let userId;
+    let userId: string | undefined;
     try {
       const jwtData = await jwtVerify(token, jwkSet);
 
       userId = jwtData.payload.sub;
 
-      request['user'] = {
+      request.user = {
         id: userId,
       };
     } catch (error) {
-      console.debug('could not verify jwt', error);
-
       throw new AuthUnauthorizedException(error);
     }
 

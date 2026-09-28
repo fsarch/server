@@ -1,13 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Joi from 'joi';
+import { Inject, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import Joi from "joi";
 
 @Injectable()
 export class ModuleConfigurationService<T extends Record<string, any>> {
   private readonly envConfig: T;
 
   constructor(
-    @Inject('CONFIG_OPTIONS') private options: Record<string, any>,
+    @Inject("CONFIG_OPTIONS") options: Record<string, any>,
     private readonly configService: ConfigService,
   ) {
     const config = this.configService.get(options.name);
@@ -24,8 +24,7 @@ export class ModuleConfigurationService<T extends Record<string, any>> {
         abortEarly: false,
       });
       if (valid.error) {
-        console.error('error while validating config', valid.error.details);
-        throw new Error('invalid config');
+        throw new Error("invalid config");
       }
     }
   }

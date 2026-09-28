@@ -1,5 +1,5 @@
-import { ConfigUacPermissionType } from '../configuration/config.type.js';
-import { Permission } from '../auth/permission.js';
+import { Permission } from "../auth/permission.js";
+import { ConfigUacPermissionType } from "../configuration/config.type.js";
 
 /**
  * Maps a permission name to the resource ids it's granted for, or `null`
@@ -7,11 +7,13 @@ import { Permission } from '../auth/permission.js';
  */
 export type TGrantMap = Map<string, Array<string> | null>;
 
-export function buildGrantMap(entries: Array<ConfigUacPermissionType>): TGrantMap {
+export function buildGrantMap(
+  entries: Array<ConfigUacPermissionType>,
+): TGrantMap {
   const grantMap: TGrantMap = new Map();
 
   for (const entry of entries) {
-    if (typeof entry === 'string') {
+    if (typeof entry === "string") {
       grantMap.set(entry, null);
       continue;
     }
@@ -21,14 +23,20 @@ export function buildGrantMap(entries: Array<ConfigUacPermissionType>): TGrantMa
       continue;
     }
 
-    const resources = Array.isArray(entry.resource) ? entry.resource : [entry.resource];
+    const resources = Array.isArray(entry.resource)
+      ? entry.resource
+      : [entry.resource];
     grantMap.set(entry.name, [...new Set([...(existing ?? []), ...resources])]);
   }
 
   return grantMap;
 }
 
-export function grantMapHasGrant(grantMap: TGrantMap, name: string, resource?: string): boolean {
+export function grantMapHasGrant(
+  grantMap: TGrantMap,
+  name: string,
+  resource?: string,
+): boolean {
   if (!grantMap.has(name)) {
     return false;
   }

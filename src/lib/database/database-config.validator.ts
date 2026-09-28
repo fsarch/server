@@ -1,12 +1,12 @@
-import Joi from 'joi';
+import Joi from "joi";
 
 export const SQLITE_DATABASE_CONFIG_VALIDATOR = Joi.object({
-  type: Joi.string().valid('sqlite').required(),
+  type: Joi.string().valid("sqlite").required(),
   database: Joi.string().required(),
 });
 
 export const COCKROACH_DATABASE_CONFIG_VALIDATOR = Joi.object({
-  type: Joi.string().valid('cockroachdb', 'postgres').required(),
+  type: Joi.string().valid("cockroachdb", "postgres").required(),
   host: Joi.string().required(),
   username: Joi.string().required(),
   password: Joi.string(),

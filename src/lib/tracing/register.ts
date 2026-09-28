@@ -51,12 +51,12 @@
  * app's own module graph (which pulls in `@nestjs/platform-express` /
  * `express`) loads at all.
  */
-import { register } from 'node:module';
-import { loadConfigFile } from '../configuration/configuration.js';
-import { initializeTracing } from './tracing.js';
+import { register } from "node:module";
+import { loadConfigFile } from "../configuration/configuration.js";
+import { initializeTracing } from "./tracing.js";
 
 if (loadConfigFile()?.tracing?.enabled) {
-  register('@opentelemetry/instrumentation/hook.mjs', import.meta.url);
+  register("@opentelemetry/instrumentation/hook.mjs", import.meta.url);
 }
 
 initializeTracing();

@@ -1,4 +1,7 @@
-import { DeletionConfig, ProcessedDeletionConfig } from './interfaces/deletion-config.interface.js';
+import {
+  DeletionConfig,
+  ProcessedDeletionConfig,
+} from "./interfaces/deletion-config.interface.js";
 
 /**
  * Converts YAML config (snake_case) to processed config (camelCase)

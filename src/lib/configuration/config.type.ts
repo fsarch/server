@@ -5,21 +5,24 @@ export type ConfigType = {
   tracing?: ConfigTracingType;
 };
 
-export type ConfigAuthType = ConfigStaticAuthType | ConfigJwtJwkAuthType | ConfigOidcAuthType;
+export type ConfigAuthType =
+  | ConfigStaticAuthType
+  | ConfigJwtJwkAuthType
+  | ConfigOidcAuthType;
 
 export type ConfigStaticAuthType = {
-  type: 'static';
+  type: "static";
   secret: string;
   users: Array<ConfigAuthUserType>;
 };
 
 export type ConfigJwtJwkAuthType = {
-  type: 'jwt-jwk';
+  type: "jwt-jwk";
   jwkUrl: string;
 };
 
 export type ConfigOidcAuthType = {
-  type: 'oidc';
+  type: "oidc";
   discovery_url: string;
 };
 
@@ -32,7 +35,7 @@ type ConfigAuthUserType = {
 export type ConfigUacType = ConfigStaticUacType | ConfigTokenUacType;
 
 export type ConfigStaticUacType = {
-  type: 'static';
+  type: "static";
   users: Array<ConfigUacUserType>;
 };
 
@@ -52,7 +55,7 @@ export type ConfigUacPermissionType =
       resource: string | Array<string>;
     };
 
-export type ConfigUacComparisonOperator = 'includes' | 'equals';
+export type ConfigUacComparisonOperator = "includes" | "equals";
 
 /**
  * Grants the listed `permissions` to every subject whose token has, at
@@ -72,17 +75,19 @@ export type ConfigTokenUacComparisonMapping = {
  */
 export type ConfigTokenUacMapMapping = {
   path: string;
-  operator: 'map';
+  operator: "map";
   mappings: Array<{
     key: string;
     permissions: Array<ConfigUacPermissionType>;
   }>;
 };
 
-export type ConfigTokenUacMapping = ConfigTokenUacComparisonMapping | ConfigTokenUacMapMapping;
+export type ConfigTokenUacMapping =
+  | ConfigTokenUacComparisonMapping
+  | ConfigTokenUacMapMapping;
 
 export type ConfigTokenUacType = {
-  type: 'token-based';
+  type: "token-based";
   mappings: Array<ConfigTokenUacMapping>;
 };
 
@@ -91,12 +96,12 @@ export type ConfigDatabaseType =
   | ConfigCockroachdbDatabaseType;
 
 type ConfigSqliteDatabaseType = {
-  type: 'sqlite';
+  type: "sqlite";
   database: string;
 };
 
 type ConfigCockroachdbDatabaseType = {
-  type: 'cockroachdb' | 'postgres';
+  type: "cockroachdb" | "postgres";
   host: string;
   username: string;
   password?: string;
@@ -141,12 +146,12 @@ export type ConfigTracingType = {
  * a distributed trace apart. Defaults to `parentbased_traceidratio`.
  */
 export type ConfigTracingSamplerType =
-  | 'always_on'
-  | 'always_off'
-  | 'traceidratio'
-  | 'parentbased_always_on'
-  | 'parentbased_always_off'
-  | 'parentbased_traceidratio';
+  | "always_on"
+  | "always_off"
+  | "traceidratio"
+  | "parentbased_always_on"
+  | "parentbased_always_off"
+  | "parentbased_traceidratio";
 
 export type ConfigTracingExporterType =
   | ConfigTracingConsoleExporterType
@@ -154,17 +159,17 @@ export type ConfigTracingExporterType =
   | ConfigTracingOtlpGrpcExporterType;
 
 export type ConfigTracingConsoleExporterType = {
-  type: 'console';
+  type: "console";
 };
 
 export type ConfigTracingOtlpHttpExporterType = {
-  type: 'otlp-http';
+  type: "otlp-http";
   url: string;
   headers?: Record<string, string>;
 };
 
 export type ConfigTracingOtlpGrpcExporterType = {
-  type: 'otlp-grpc';
+  type: "otlp-grpc";
   url: string;
   headers?: Record<string, string>;
 };

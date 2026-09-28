@@ -1,36 +1,36 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AuthService } from './auth.service';
-import { ConfigService } from '@nestjs/config';
-import { StaticAuthService } from './static/static-auth.service';
-import { JwtJwkAuthService } from './jwt-jwk/jwt-jwk-auth.service';
-import { OidcAuthService } from './oidc/oidc-auth.service';
+import { ConfigService } from "@nestjs/config";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AuthService } from "./auth.service";
+import { JwtJwkAuthService } from "./jwt-jwk/jwt-jwk-auth.service";
+import { OidcAuthService } from "./oidc/oidc-auth.service";
+import { StaticAuthService } from "./static/static-auth.service";
 
 // Mock ConfigService
 class MockConfigService {
   get<T = any>(key: string): T {
-    if (key === 'auth.type') return 'static' as T;
-    if (key?.includes('auth')) return { type: 'static' } as T;
+    if (key === "auth.type") return "static" as T;
+    if (key?.includes("auth")) return { type: "static" } as T;
     return null as T;
   }
 }
 
 // Mock Auth Services
 const mockStaticAuthService = {
-  validateRequest: vi.fn().mockResolvedValue({ id: 'user1' }),
-  signIn: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+  validateRequest: vi.fn().mockResolvedValue({ id: "user1" }),
+  signIn: vi.fn().mockResolvedValue({ accessToken: "token" }),
 };
 
 const mockJwtJwkAuthService = {
-  validateRequest: vi.fn().mockResolvedValue({ id: 'user1' }),
-  signIn: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+  validateRequest: vi.fn().mockResolvedValue({ id: "user1" }),
+  signIn: vi.fn().mockResolvedValue({ accessToken: "token" }),
 };
 
 const mockOidcAuthService = {
-  validateRequest: vi.fn().mockResolvedValue({ id: 'user1' }),
-  signIn: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+  validateRequest: vi.fn().mockResolvedValue({ id: "user1" }),
+  signIn: vi.fn().mockResolvedValue({ accessToken: "token" }),
 };
 
-describe('AuthService', () => {
+describe("AuthService", () => {
   let service: AuthService;
 
   beforeEach(() => {
@@ -43,11 +43,11 @@ describe('AuthService', () => {
     );
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  it('should use static auth service when type is static', () => {
+  it("should use static auth service when type is static", () => {
     // The constructor sets authService based on config
     expect(service).toBeDefined();
   });

@@ -1,5 +1,5 @@
-import { SpanStatusCode, type Span as OtelSpan } from '@opentelemetry/api';
-import { getTracer } from './tracing.js';
+import { type Span as OtelSpan, SpanStatusCode } from "@opentelemetry/api";
+import { getTracer } from "./tracing.js";
 
 export type SpanOptions = {
   /** Span name. For `@Span()` defaults to `ClassName.methodName`; required for `withSpan()`. */
@@ -12,7 +12,9 @@ export type SpanOptions = {
 
 function finishSpan(span: OtelSpan, error?: unknown): void {
   if (error !== undefined) {
-    span.recordException(error instanceof Error ? error : new Error(String(error)));
+    span.recordException(
+      error instanceof Error ? error : new Error(String(error)),
+    );
     span.setStatus({
       code: SpanStatusCode.ERROR,
       message: error instanceof Error ? error.message : String(error),
@@ -38,7 +40,7 @@ function finishSpan(span: OtelSpan, error?: unknown): void {
 export function withSpan<T>(
   name: string,
   fn: (span: OtelSpan) => T,
-  options?: Omit<SpanOptions, 'name'>,
+  options?: Omit<SpanOptions, "name">,
 ): T {
   const tracer = getTracer(options?.tracerName);
 
@@ -89,24 +91,28 @@ export function withSpan<T>(
  * ```
  */
 export function Span(options?: SpanOptions) {
-  return function (
+  return (
     target: object,
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor,
-  ): PropertyDescriptor {
+  ): PropertyDescriptor => {
     const originalMethod = descriptor.value;
-    if (typeof originalMethod !== 'function') {
+    if (typeof originalMethod !== "function") {
       return descriptor;
     }
 
     const className =
       (target as { constructor?: { name?: string } })?.constructor?.name ??
       (target as { name?: string })?.name ??
-      'UnknownClass';
+      "UnknownClass";
     const spanName = options?.name ?? `${className}.${String(propertyKey)}`;
 
     descriptor.value = function (this: unknown, ...args: unknown[]) {
-      return withSpan(spanName, () => originalMethod.apply(this, args), options);
+      return withSpan(
+        spanName,
+        () => originalMethod.apply(this, args),
+        options,
+      );
     };
 
     return descriptor;

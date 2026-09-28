@@ -1,4 +1,4 @@
-import { ExecutionContext } from '@nestjs/common';
+import { ExecutionContext } from "@nestjs/common";
 
 /**
  * `AuthGuard`/`RolesGuard` need the underlying Express request regardless of which
@@ -13,10 +13,12 @@ import { ExecutionContext } from '@nestjs/common';
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getRequestFromContext(context: ExecutionContext): any {
-  if (context.getType() !== 'rpc') {
+  if (context.getType() !== "rpc") {
     return context.switchToHttp().getRequest();
   }
 
-  const rpcContext = context.switchToRpc().getContext<{ getRawRequest?: () => unknown }>();
+  const rpcContext = context
+    .switchToRpc()
+    .getContext<{ getRawRequest?: () => unknown }>();
   return rpcContext?.getRawRequest?.();
 }

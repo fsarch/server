@@ -1,12 +1,12 @@
-import type { IUser } from './types/auth-service.type.js';
-import { Permission } from './permission.js';
+import { Permission } from "./permission.js";
+import { IUser } from "./types/auth-service.type.js";
 
 export class User implements IUser {
   private readonly accessToken: string;
   private readonly id?: string;
   private permissionResolver?: (name: string) => Promise<Permission>;
 
-  constructor(data: { accessToken: string; id?: string; }) {
+  constructor(data: { accessToken: string; id?: string }) {
     this.id = data.id;
     this.accessToken = data.accessToken;
   }

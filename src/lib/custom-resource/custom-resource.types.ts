@@ -1,10 +1,10 @@
 export type TCustomResourceAuth = {
-  type: 'credential-propagation';
+  type: "credential-propagation";
 };
 
 export type TCustomResourceRequest = {
   path: string;
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   auth: TCustomResourceAuth;
   queryParams?: Record<string, string | string[]>;
 };

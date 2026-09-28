@@ -1,16 +1,14 @@
 import { Controller, Get, NotFoundException, Req } from "@nestjs/common";
-import { Public } from "./decorators/public.decorator.js";
 import type { Request } from "express";
 import { AuthService } from "./auth.service.js";
+import { Public } from "./decorators/public.decorator.js";
 
-@Controller('.well-known')
+@Controller(".well-known")
 export class WellKnownController {
-  constructor(
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @Get('oauth-protected-resource')
+  @Get("oauth-protected-resource")
   async getOAuthProtectedResource(@Req() req: Request) {
     const metadata = await this.authService.getOidcMetadata?.();
     if (!metadata) {
@@ -30,7 +28,7 @@ export class WellKnownController {
       resource,
       authorization_servers: authorizationServers,
       jwks_uri: jwksUri,
-      bearer_methods_supported: ['header'],
+      bearer_methods_supported: ["header"],
       // Deliberately not `metadata.scopes_supported`: that's the *authorization
       // server's* full scope catalog (Keycloak realms typically include
       // internal scopes like `web-origins`, `acr`, `service_account`, ...).
@@ -49,43 +47,52 @@ export class WellKnownController {
       // during Dynamic Client Registration would just trade one 403 for
       // another.
       scopes_supported: [
-        'openid',
-        ...(metadata.scopes_supported?.includes('offline_access') ? ['offline_access'] : []),
+        "openid",
+        ...(metadata.scopes_supported?.includes("offline_access")
+          ? ["offline_access"]
+          : []),
       ],
     };
   }
 
   private getRequestProtocol(req: Request): string {
-    const forwardedProtoHeader = req.headers['x-forwarded-proto'] as string | undefined;
+    const forwardedProtoHeader = req.headers["x-forwarded-proto"] as
+      | string
+      | undefined;
     if (forwardedProtoHeader && forwardedProtoHeader.length > 0) {
-      const first = forwardedProtoHeader.split(',')[0].trim();
+      const first = forwardedProtoHeader.split(",")[0].trim();
       if (first.length > 0) return first;
     }
 
-    if (req.protocol && typeof req.protocol === 'string' && req.protocol.length > 0) {
+    if (
+      req.protocol &&
+      typeof req.protocol === "string" &&
+      req.protocol.length > 0
+    ) {
       return req.protocol;
     }
 
-    if (typeof req.secure === 'boolean' && req.secure) {
-      return 'https';
+    if (typeof req.secure === "boolean" && req.secure) {
+      return "https";
     }
 
-    return 'http';
+    return "http";
   }
 
   private getRequestHost(req: Request): string {
-    const forwardedHostHeader = req.headers['x-forwarded-host'] as string | undefined;
+    const forwardedHostHeader = req.headers["x-forwarded-host"] as
+      | string
+      | undefined;
     if (forwardedHostHeader && forwardedHostHeader.length > 0) {
-      const first = forwardedHostHeader.split(',')[0].trim();
+      const first = forwardedHostHeader.split(",")[0].trim();
       if (first.length > 0) return first;
     }
 
-    const hostHeader = req.headers['host'] as string | undefined;
+    const hostHeader = req.headers.host as string | undefined;
     if (hostHeader && hostHeader.length > 0) {
       return hostHeader;
     }
 
-    return 'localhost:8080';
+    return "localhost:8080";
   }
 }
-

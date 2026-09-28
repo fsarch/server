@@ -1,15 +1,26 @@
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import {
+  type DynamicModule,
+  type ForwardReference,
+  type INestApplication,
+  Module,
+  type Type,
+  VersioningType,
+} from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { PinoLogger } from "./logger/pino-logger.service.js";
-import { DynamicModule, ForwardReference, INestApplication, Module, Type, VersioningType } from "@nestjs/common";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { AuthService } from "./auth/auth.service.js";
+import { AuthExceptionFilter } from "./auth/errors/AuthExceptionFilter.js";
+import { TCustomResourceDefinition } from "./custom-resource/custom-resource.types.js";
 import { DatabaseModuleOptions } from "./database/database.module.js";
 import { FsarchModule } from "./fsarch.module.js";
-import { AuthExceptionFilter } from "./auth/errors/AuthExceptionFilter.js";
-import { AuthService } from "./auth/auth.service.js";
-import { initializeTracing } from "./tracing/tracing.js";
-import { TCustomResourceDefinition } from "./custom-resource/custom-resource.types.js";
-import { createMcpStrategy, createMcpHttpController, DEFAULT_MCP_ENDPOINT } from "./mcp/mcp.js";
+import { PinoLogger } from "./logger/pino-logger.service.js";
+import {
+  createMcpHttpController,
+  createMcpStrategy,
+  DEFAULT_MCP_ENDPOINT,
+} from "./mcp/mcp.js";
 import { McpModuleOptions } from "./mcp/mcp.types.js";
+import { initializeTracing } from "./tracing/tracing.js";
 
 type SwaggerOptionsType = {
   path?: string;
@@ -18,7 +29,7 @@ type SwaggerOptionsType = {
   version: string;
 };
 
-type IEntryModule = Type<any> | DynamicModule | ForwardReference
+type IEntryModule = Type<any> | DynamicModule | ForwardReference;
 
 export class FsArchAppBuilder {
   private swaggerOptions: Array<SwaggerOptionsType> = [];
@@ -28,11 +39,21 @@ export class FsArchAppBuilder {
   private uacOptions?: { roles: Array<string> };
   private customResources: Array<TCustomResourceDefinition> = [];
   private mcpOptions?: McpModuleOptions;
-  private readonly httpMethods = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
+  private readonly httpMethods = new Set([
+    "get",
+    "put",
+    "post",
+    "delete",
+    "options",
+    "head",
+    "patch",
+    "trace",
+  ]);
 
-  constructor(private readonly baseModule: IEntryModule, private readonly info: { name: string; version: string }) {
-
-  }
+  constructor(
+    private readonly baseModule: IEntryModule,
+    private readonly info: { name: string; version: string },
+  ) {}
 
   addSwagger(options: SwaggerOptionsType): this {
     this.swaggerOptions.push(options);
@@ -69,21 +90,27 @@ export class FsArchAppBuilder {
     return this;
   }
 
-  private setUniqueOperationIds(document: { paths?: Record<string, Record<string, any>> }) {
+  private setUniqueOperationIds(document: {
+    paths?: Record<string, Record<string, any>>;
+  }) {
     const usedOperationIds = new Set<string>();
 
     for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
       for (const [httpMethod, operation] of Object.entries(pathItem ?? {})) {
-        if (!this.httpMethods.has(httpMethod) || !operation || typeof operation !== 'object') {
+        if (
+          !this.httpMethods.has(httpMethod) ||
+          !operation ||
+          typeof operation !== "object"
+        ) {
           continue;
         }
 
         const normalizedPath = path
-          .replace(/[{}]/g, '')
-          .replace(/[^a-zA-Z0-9]+/g, '_')
-          .replace(/^_+|_+$/g, '');
+          .replace(/[{}]/g, "")
+          .replace(/[^a-zA-Z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "");
 
-        const baseOperationId = `${httpMethod}_${normalizedPath || 'root'}`;
+        const baseOperationId = `${httpMethod}_${normalizedPath || "root"}`;
         let operationId = baseOperationId;
         let duplicateCounter = 2;
 
@@ -124,7 +151,9 @@ export class FsArchAppBuilder {
     // before: `createMcpStrategy()` self-mounts whatever was passed.
     const mcpHttp =
       this.mcpOptions && !this.mcpOptions.transports
-        ? createMcpHttpController(this.mcpOptions.endpoint ?? DEFAULT_MCP_ENDPOINT)
+        ? createMcpHttpController(
+            this.mcpOptions.endpoint ?? DEFAULT_MCP_ENDPOINT,
+          )
         : undefined;
 
     @Module({
@@ -166,7 +195,8 @@ export class FsArchAppBuilder {
     });
 
     const swaggerEnabled =
-      process.env.NODE_ENV !== "production" || process.env.ENABLE_SWAGGER_DOCS === "true";
+      process.env.NODE_ENV !== "production" ||
+      process.env.ENABLE_SWAGGER_DOCS === "true";
 
     if (swaggerEnabled) {
       for (const { path, title, version, description } of this.swaggerOptions) {
@@ -178,7 +208,7 @@ export class FsArchAppBuilder {
           .build();
         const document = SwaggerModule.createDocument(app, config);
         this.setUniqueOperationIds(document);
-        SwaggerModule.setup(path ?? 'docs', app, document);
+        SwaggerModule.setup(path ?? "docs", app, document);
       }
     }
 

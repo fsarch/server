@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
-import { readFile } from 'node:fs/promises';
-import { ModuleConfiguration } from '../configuration/module/module-configuration.module.js';
-import { ModuleConfigurationService } from '../configuration/module/module-configuration.service.js';
-import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { DATABASE_CONFIG_VALIDATOR } from './database-config.validator.js';
-import { ConfigDatabaseType } from '../configuration/config.type.js';
-import { EntitySchema } from 'typeorm';
-import { TypeOrmPinoLogger } from './typeorm-pino-logger.js';
+import { readFile } from "node:fs/promises";
+import { Module } from "@nestjs/common";
+import { TypeOrmModule, type TypeOrmModuleOptions } from "@nestjs/typeorm";
+import { EntitySchema } from "typeorm";
+import { ConfigDatabaseType } from "../configuration/config.type.js";
+import { ModuleConfiguration } from "../configuration/module/module-configuration.module.js";
+import { ModuleConfigurationService } from "../configuration/module/module-configuration.service.js";
+import { DATABASE_CONFIG_VALIDATOR } from "./database-config.validator.js";
+import { TypeOrmPinoLogger } from "./typeorm-pino-logger.js";
 
 export type DatabaseModuleOptions = {
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -22,12 +22,12 @@ export class DatabaseModule {
       imports: [
         TypeOrmModule.forRootAsync({
           imports: [
-            ModuleConfiguration.register('DATABASE_CONFIG', {
+            ModuleConfiguration.register("DATABASE_CONFIG", {
               validationSchema: DATABASE_CONFIG_VALIDATOR,
-              name: 'database',
+              name: "database",
             }),
           ],
-          inject: ['DATABASE_CONFIG'],
+          inject: ["DATABASE_CONFIG"],
           useFactory: async (
             databaseConfigService: ModuleConfigurationService<ConfigDatabaseType>,
           ): Promise<TypeOrmModuleOptions> => {
@@ -37,21 +37,21 @@ export class DatabaseModule {
               entities: options.entities,
               migrationsRun: true,
               synchronize: false,
-              logging: ['query', 'error'],
+              logging: ["query", "error"],
               logger: new TypeOrmPinoLogger(),
             };
 
-            if (databaseConfig.type === 'sqlite') {
+            if (databaseConfig.type === "sqlite") {
               return {
-                type: 'better-sqlite3',
+                type: "better-sqlite3",
                 database: databaseConfig.database,
                 ...baseConfig,
               } as TypeOrmModuleOptions;
             }
 
             if (
-              databaseConfig.type === 'cockroachdb' ||
-              databaseConfig.type === 'postgres'
+              databaseConfig.type === "cockroachdb" ||
+              databaseConfig.type === "postgres"
             ) {
               const sslOptions: Partial<{
                 rejectUnauthorized: boolean;
@@ -67,7 +67,7 @@ export class DatabaseModule {
                 }
 
                 if (databaseConfig.ssl.ca) {
-                  if (typeof databaseConfig.ssl.ca === 'string') {
+                  if (typeof databaseConfig.ssl.ca === "string") {
                     sslOptions.ca = databaseConfig.ssl.ca;
                   } else {
                     sslOptions.ca = await readFile(databaseConfig.ssl.ca.path);
@@ -75,7 +75,7 @@ export class DatabaseModule {
                 }
 
                 if (databaseConfig.ssl.cert) {
-                  if (typeof databaseConfig.ssl.cert === 'string') {
+                  if (typeof databaseConfig.ssl.cert === "string") {
                     sslOptions.cert = databaseConfig.ssl.cert;
                   } else {
                     sslOptions.cert = await readFile(
@@ -85,7 +85,7 @@ export class DatabaseModule {
                 }
 
                 if (databaseConfig.ssl.key) {
-                  if (typeof databaseConfig.ssl.key === 'string') {
+                  if (typeof databaseConfig.ssl.key === "string") {
                     sslOptions.key = databaseConfig.ssl.key;
                   } else {
                     sslOptions.key = await readFile(

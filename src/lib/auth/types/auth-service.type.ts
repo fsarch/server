@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import type { Permission } from '../permission.js';
+import { Permission } from "../permission.js";
 
 export interface IUser {
   getId(): string | undefined;
@@ -11,8 +11,8 @@ export interface IUser {
 export type TOidcMetadata = {
   scopes_supported: Array<string>;
   authorization_endpoint: string;
-  jwks_uri: string
-}
+  jwks_uri: string;
+};
 
 export interface IAuthService {
   signIn(username: string, password: string): Promise<{ accessToken: string }>;

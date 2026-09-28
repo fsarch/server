@@ -1,7 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { TCustomResourceDefinition } from './custom-resource.types.js';
+import { Inject, Injectable } from "@nestjs/common";
+import { TCustomResourceDefinition } from "./custom-resource.types.js";
 
-export const CUSTOM_RESOURCE = Symbol('CUSTOM_RESOURCE');
+export const CUSTOM_RESOURCE = Symbol("CUSTOM_RESOURCE");
 
 @Injectable()
 export class CustomResourceService {

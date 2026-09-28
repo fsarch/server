@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import configuration from './configuration.js';
-import { ConfigModule } from '@nestjs/config';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import configuration from "./configuration.js";
 
 @Module({
   imports: [

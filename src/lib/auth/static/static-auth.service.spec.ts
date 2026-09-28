@@ -1,10 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StaticAuthService } from './static-auth.service';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { vi } from 'vitest';
+import { JwtService } from "@nestjs/jwt";
+import { Test, type TestingModule } from "@nestjs/testing";
+import { vi } from "vitest";
+import { StaticAuthService } from "./static-auth.service";
 
-describe('StaticAuthService', () => {
+describe("StaticAuthService", () => {
   let service: StaticAuthService;
 
   beforeEach(async () => {
@@ -12,18 +11,18 @@ describe('StaticAuthService', () => {
       providers: [
         StaticAuthService,
         {
-          provide: 'AUTH_CONFIG',
+          provide: "AUTH_CONFIG",
           useValue: {
             get: vi.fn(() => ({
-              users: [{ id: '1', username: 'test', password: 'pass' }],
+              users: [{ id: "1", username: "test", password: "pass" }],
             })),
           },
         },
         {
           provide: JwtService,
           useValue: {
-            verifyAsync: vi.fn().mockResolvedValue({ sub: '1' }),
-            signAsync: vi.fn().mockResolvedValue('token'),
+            verifyAsync: vi.fn().mockResolvedValue({ sub: "1" }),
+            signAsync: vi.fn().mockResolvedValue("token"),
           },
         },
       ],
@@ -32,7 +31,7 @@ describe('StaticAuthService', () => {
     service = module.get<StaticAuthService>(StaticAuthService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 });

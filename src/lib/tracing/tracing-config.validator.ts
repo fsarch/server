@@ -1,17 +1,17 @@
-import Joi from 'joi';
+import Joi from "joi";
 
 export const TRACING_CONSOLE_EXPORTER_CONFIG_VALIDATOR = Joi.object({
-  type: Joi.string().valid('console').required(),
+  type: Joi.string().valid("console").required(),
 });
 
 export const TRACING_OTLP_HTTP_EXPORTER_CONFIG_VALIDATOR = Joi.object({
-  type: Joi.string().valid('otlp-http').required(),
+  type: Joi.string().valid("otlp-http").required(),
   url: Joi.string().uri().required(),
   headers: Joi.object().pattern(Joi.string(), Joi.string()),
 });
 
 export const TRACING_OTLP_GRPC_EXPORTER_CONFIG_VALIDATOR = Joi.object({
-  type: Joi.string().valid('otlp-grpc').required(),
+  type: Joi.string().valid("otlp-grpc").required(),
   url: Joi.string().uri().required(),
   headers: Joi.object().pattern(Joi.string(), Joi.string()),
 });
@@ -23,12 +23,12 @@ export const TRACING_EXPORTER_CONFIG_VALIDATOR = Joi.alternatives(
 );
 
 export const TRACING_SAMPLER_CONFIG_VALIDATOR = Joi.string().valid(
-  'always_on',
-  'always_off',
-  'traceidratio',
-  'parentbased_always_on',
-  'parentbased_always_off',
-  'parentbased_traceidratio',
+  "always_on",
+  "always_off",
+  "traceidratio",
+  "parentbased_always_on",
+  "parentbased_always_off",
+  "parentbased_traceidratio",
 );
 
 export const TRACING_CONFIG_VALIDATOR = Joi.object({
@@ -36,8 +36,9 @@ export const TRACING_CONFIG_VALIDATOR = Joi.object({
   serviceName: Joi.string(),
   sampler: TRACING_SAMPLER_CONFIG_VALIDATOR,
   sampleRatio: Joi.number().min(0).max(1),
-  exporter: Joi.when('enabled', {
+  exporter: Joi.when("enabled", {
     is: true,
+    // biome-ignore lint/suspicious/noThenProperty: Joi.when() schema shape requires a `then` key
     then: TRACING_EXPORTER_CONFIG_VALIDATOR.required(),
     otherwise: TRACING_EXPORTER_CONFIG_VALIDATOR.optional(),
   }),

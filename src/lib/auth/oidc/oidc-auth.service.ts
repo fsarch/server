@@ -1,35 +1,42 @@
 import {
-  HttpException, HttpStatus,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   NotImplementedException,
-} from '@nestjs/common';
-import { IAuthService, TOidcMetadata } from '../types/auth-service.type.js';
-import { Request } from 'express';
-import { ModuleConfigurationService } from '../../configuration/module/module-configuration.service.js';
-import { ConfigOidcAuthType } from '../../configuration/config.type.js';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { User } from '../user.js';
+} from "@nestjs/common";
+import { Request } from "express";
+import { createRemoteJWKSet, jwtVerify } from "jose";
+import { ConfigOidcAuthType } from "../../configuration/config.type.js";
+import { ModuleConfigurationService } from "../../configuration/module/module-configuration.service.js";
 import { AuthUnauthorizedException } from "../errors/AuthUnauthorizedException.js";
+import { IAuthService, TOidcMetadata } from "../types/auth-service.type.js";
+import { User } from "../user.js";
 
 @Injectable()
 export class OidcAuthService implements IAuthService {
-  private oidcConfiguration: { authorization_endpoint: string; jwks_uri: string; scopes_supported: Array<string> } | null = null;
+  private oidcConfiguration: {
+    authorization_endpoint: string;
+    jwks_uri: string;
+    scopes_supported: Array<string>;
+  } | null = null;
   private jwkSet: ReturnType<typeof createRemoteJWKSet> | null = null;
 
   constructor(
-    @Inject('AUTH_CONFIG')
+    @Inject("AUTH_CONFIG")
     private readonly authConfigService: ModuleConfigurationService<ConfigOidcAuthType>,
-  ) {
-  }
+  ) {}
 
   private async getOidcConfiguration(): Promise<TOidcMetadata> {
     if (!this.oidcConfiguration) {
-      const response = await fetch(this.authConfigService.get('discovery_url'));
+      const response = await fetch(this.authConfigService.get("discovery_url"));
       if (!response.ok) {
-        throw new HttpException('Failed to fetch OIDC configuration', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          "Failed to fetch OIDC configuration",
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
-      this.oidcConfiguration = await response.json() as TOidcMetadata;
+      this.oidcConfiguration = (await response.json()) as TOidcMetadata;
     }
 
     return this.oidcConfiguration;
@@ -46,15 +53,15 @@ export class OidcAuthService implements IAuthService {
   }
 
   public async signIn(
-    username: string,
-    password: string,
+    _username: string,
+    _password: string,
   ): Promise<{ accessToken: string }> {
     throw new NotImplementedException();
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    const [type, token] = request.headers.authorization?.split(" ") ?? [];
+    return type === "Bearer" ? token : undefined;
   }
 
   public async validateRequest(request: any): Promise<User> {
@@ -65,19 +72,17 @@ export class OidcAuthService implements IAuthService {
 
     const jwkSet = await this.getJwkSet();
 
-    let userId;
+    let userId: string | undefined;
 
     try {
       const jwtData = await jwtVerify(token, jwkSet);
 
       userId = jwtData.payload.sub;
 
-      request['user'] = {
+      request.user = {
         id: userId,
       };
     } catch (error) {
-      console.debug('could not verify jwt', error);
-
       throw new AuthUnauthorizedException(error);
     }
 
@@ -94,8 +99,7 @@ export class OidcAuthService implements IAuthService {
   public async getOidcMetadata(): Promise<TOidcMetadata | null> {
     try {
       return await this.getOidcConfiguration();
-    } catch (err) {
-      console.debug('Failed to get OIDC metadata', err);
+    } catch (_err) {
       return null;
     }
   }

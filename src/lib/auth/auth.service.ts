@@ -1,28 +1,28 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { StaticAuthService } from './static/static-auth.service.js';
-import type { IAuthService, IUser } from './types/auth-service.type.js';
-import { ConfigAuthType } from '../configuration/config.type.js';
-import { JwtJwkAuthService } from './jwt-jwk/jwt-jwk-auth.service.js';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { ConfigAuthType } from "../configuration/config.type.js";
+import { JwtJwkAuthService } from "./jwt-jwk/jwt-jwk-auth.service.js";
 import { OidcAuthService } from "./oidc/oidc-auth.service.js";
+import { StaticAuthService } from "./static/static-auth.service.js";
+import { IAuthService, IUser } from "./types/auth-service.type.js";
 
 @Injectable()
 export class AuthService implements IAuthService {
   private readonly authService: IAuthService;
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly staticAuthService: StaticAuthService,
-    private readonly jwtJwkAuthService: JwtJwkAuthService,
-    private readonly oidcAuthService: OidcAuthService,
+    readonly configService: ConfigService,
+    readonly staticAuthService: StaticAuthService,
+    readonly jwtJwkAuthService: JwtJwkAuthService,
+    readonly oidcAuthService: OidcAuthService,
   ) {
-    const authType = configService.get<ConfigAuthType['type']>('auth.type');
+    const authType = configService.get<ConfigAuthType["type"]>("auth.type");
 
-    if (authType === 'static') {
+    if (authType === "static") {
       this.authService = staticAuthService;
-    } else if (authType === 'jwt-jwk') {
+    } else if (authType === "jwt-jwk") {
       this.authService = jwtJwkAuthService;
-    } else if (authType === 'oidc') {
+    } else if (authType === "oidc") {
       this.authService = oidcAuthService;
     } else {
       throw new Error(`Unsupported auth type: ${authType}`);

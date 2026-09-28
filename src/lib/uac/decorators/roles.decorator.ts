@@ -1,7 +1,7 @@
-import { SetMetadata } from '@nestjs/common';
-import type { Request } from 'express';
+import { SetMetadata } from "@nestjs/common";
+import { Request } from "express";
 
-export const ROLES_KEY = 'roles';
+export const ROLES_KEY = "roles";
 
 export type TRoleRequirement =
   | string
@@ -10,4 +10,5 @@ export type TRoleRequirement =
       resource: (request: Request) => string | undefined;
     };
 
-export const Roles = (...roles: Array<TRoleRequirement>) => SetMetadata(ROLES_KEY, roles);
+export const Roles = (...roles: Array<TRoleRequirement>) =>
+  SetMetadata(ROLES_KEY, roles);

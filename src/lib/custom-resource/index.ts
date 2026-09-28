@@ -1,15 +1,13 @@
-export {
-  CustomResourceModule,
-} from './custom-resource.module.js';
-export type { CustomResourceModuleOptions } from './custom-resource.module.js';
+export type { CustomResourceModuleOptions } from "./custom-resource.module.js";
+export { CustomResourceModule } from "./custom-resource.module.js";
 
 export {
-  CustomResourceService,
   CUSTOM_RESOURCE,
-} from './custom-resource.service.js';
+  CustomResourceService,
+} from "./custom-resource.service.js";
 
 export type {
+  TCustomResourceAuth,
   TCustomResourceDefinition,
   TCustomResourceRequest,
-  TCustomResourceAuth,
-} from './custom-resource.types.js';
+} from "./custom-resource.types.js";

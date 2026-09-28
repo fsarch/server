@@ -1,10 +1,6 @@
-import { Type, applyDecorators } from '@nestjs/common';
-import {
-  ApiExtraModels,
-  ApiOkResponse,
-  getSchemaPath,
-} from '@nestjs/swagger';
-import { PaginationResultDto } from './pagination-result.dto.js';
+import { applyDecorators, type Type } from "@nestjs/common";
+import { ApiExtraModels, ApiOkResponse, getSchemaPath } from "@nestjs/swagger";
+import { PaginationResultDto } from "./pagination-result.dto.js";
 
 export const ApiOkPaginatedResponse = <TModel extends Type<unknown>>(
   itemDto: TModel,
@@ -18,7 +14,7 @@ export const ApiOkPaginatedResponse = <TModel extends Type<unknown>>(
           {
             properties: {
               data: {
-                type: 'array',
+                type: "array",
                 items: { $ref: getSchemaPath(itemDto) },
               },
             },
@@ -27,4 +23,3 @@ export const ApiOkPaginatedResponse = <TModel extends Type<unknown>>(
       },
     }),
   );
-

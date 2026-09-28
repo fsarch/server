@@ -1,40 +1,39 @@
-import { Injectable, Optional, Scope, ConsoleLogger } from '@nestjs/common';
-import { isErrorLike, serializeError } from 'serialize-error';
-import pino, { type Logger, type LevelWithSilent } from 'pino';
-import { context as otelContext, trace as otelTrace } from '@opentelemetry/api';
+import { ConsoleLogger, Injectable, Optional, Scope } from "@nestjs/common";
+import { context as otelContext, trace as otelTrace } from "@opentelemetry/api";
+import pino, { type LevelWithSilent, type Logger } from "pino";
+import { isErrorLike, serializeError } from "serialize-error";
 
 const LOG_LEVELS: Array<LevelWithSilent> = [
-  'trace',
-  'debug',
-  'info',
-  'warn',
-  'error',
-  'fatal',
-  'silent',
+  "trace",
+  "debug",
+  "info",
+  "warn",
+  "error",
+  "fatal",
+  "silent",
 ];
-const DEFAULT_LOG_LEVEL: LevelWithSilent = 'warn';
+const DEFAULT_LOG_LEVEL: LevelWithSilent = "warn";
 
 function resolveLogLevel(): LevelWithSilent {
-  const configuredLevel = process.env.LOG_LEVEL?.toLowerCase() as LevelWithSilent | undefined;
+  const configuredLevel = process.env.LOG_LEVEL?.toLowerCase() as
+    | LevelWithSilent
+    | undefined;
 
   if (!configuredLevel) {
     return DEFAULT_LOG_LEVEL;
   }
 
   if (!LOG_LEVELS.includes(configuredLevel)) {
-    console.warn(
-      `Invalid LOG_LEVEL "${configuredLevel}", falling back to "${DEFAULT_LOG_LEVEL}". Valid values: ${LOG_LEVELS.join(', ')}`,
-    );
     return DEFAULT_LOG_LEVEL;
   }
 
   return configuredLevel;
 }
 
-type LogFormat = 'json' | 'pretty';
+type LogFormat = "json" | "pretty";
 
-const LOG_FORMATS: Array<LogFormat> = ['json', 'pretty'];
-const DEFAULT_LOG_FORMAT: LogFormat = 'json';
+const LOG_FORMATS: Array<LogFormat> = ["json", "pretty"];
+const DEFAULT_LOG_FORMAT: LogFormat = "json";
 
 /**
  * `json` (the default) is what every clustered/production deployment must
@@ -43,16 +42,15 @@ const DEFAULT_LOG_FORMAT: LogFormat = 'json';
  * pipes through `pino-pretty`.
  */
 function resolveLogFormat(): LogFormat {
-  const configuredFormat = process.env.LOG_FORMAT?.toLowerCase() as LogFormat | undefined;
+  const configuredFormat = process.env.LOG_FORMAT?.toLowerCase() as
+    | LogFormat
+    | undefined;
 
   if (!configuredFormat) {
     return DEFAULT_LOG_FORMAT;
   }
 
   if (!LOG_FORMATS.includes(configuredFormat)) {
-    console.warn(
-      `Invalid LOG_FORMAT "${configuredFormat}", falling back to "${DEFAULT_LOG_FORMAT}". Valid values: ${LOG_FORMATS.join(', ')}`,
-    );
     return DEFAULT_LOG_FORMAT;
   }
 
@@ -89,7 +87,7 @@ export class PinoLogger extends ConsoleLogger {
   constructor(@Optional() section?: string) {
     super();
 
-    this.section = section || '';
+    this.section = section || "";
 
     const format = resolveLogFormat();
 
@@ -97,18 +95,18 @@ export class PinoLogger extends ConsoleLogger {
       level: resolveLogLevel(),
       base: undefined,
       timestamp: false,
-      messageKey: 'message',
+      messageKey: "message",
       mixin: activeTraceContext,
       transport:
-        format === 'pretty'
-          ? { target: 'pino-pretty', options: { colorize: true } }
+        format === "pretty"
+          ? { target: "pino-pretty", options: { colorize: true } }
           : undefined,
     });
   }
 
   public Error(message: string, data?: Record<string, any>) {
     const logData = { ...data };
-    if (logData && 'error' in logData && isErrorLike(logData.error)) {
+    if (logData && "error" in logData && isErrorLike(logData.error)) {
       logData.error = serializeError(logData.error);
     }
 
@@ -143,10 +141,7 @@ export class PinoLogger extends ConsoleLogger {
       message = message.message;
     }
 
-    this.pino.error(
-      logData,
-      message,
-    );
+    this.pino.error(logData, message);
   }
 
   public warn(message: any, ...args: any[]) {

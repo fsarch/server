@@ -1,11 +1,11 @@
-export { initializeTracing, shutdownTracing, getTracer } from './tracing.js';
-export { TracingModule } from './tracing.module.js';
-export { Span, withSpan } from './span.decorator.js';
-export type { SpanOptions } from './span.decorator.js';
 export type {
-  ConfigTracingType,
-  ConfigTracingExporterType,
   ConfigTracingConsoleExporterType,
-  ConfigTracingOtlpHttpExporterType,
+  ConfigTracingExporterType,
   ConfigTracingOtlpGrpcExporterType,
-} from '../configuration/config.type.js';
+  ConfigTracingOtlpHttpExporterType,
+  ConfigTracingType,
+} from "../configuration/config.type.js";
+export type { SpanOptions } from "./span.decorator.js";
+export { Span, withSpan } from "./span.decorator.js";
+export { getTracer, initializeTracing, shutdownTracing } from "./tracing.js";
+export { TracingModule } from "./tracing.module.js";

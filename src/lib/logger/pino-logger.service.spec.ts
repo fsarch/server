@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PinoLogger } from './pino-logger.service';
-import { vi } from 'vitest';
+import { Test, type TestingModule } from "@nestjs/testing";
+import { vi } from "vitest";
+import { PinoLogger } from "./pino-logger.service";
 
 // Mock pino
-vi.mock('pino', () => ({
+vi.mock("pino", () => ({
   default: {
     pino: vi.fn(() => ({
       info: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('pino', () => ({
   },
 }));
 
-describe('PinoLogger', () => {
+describe("PinoLogger", () => {
   let service: PinoLogger;
 
   beforeEach(async () => {
@@ -28,16 +28,16 @@ describe('PinoLogger', () => {
     service = module.resolve<PinoLogger>(PinoLogger);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  it('should create instance with section', () => {
-    const logger = new PinoLogger('test-section');
+  it("should create instance with section", () => {
+    const logger = new PinoLogger("test-section");
     expect(logger).toBeDefined();
   });
 
-  it('should have static Instance', () => {
+  it("should have static Instance", () => {
     expect(PinoLogger.Instance).toBeDefined();
   });
 });

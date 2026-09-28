@@ -1,53 +1,53 @@
-import { NodeSDK } from '@opentelemetry/sdk-node';
+import { Metadata } from "@grpc/grpc-js";
+import { type Tracer, trace } from "@opentelemetry/api";
+import { OTLPTraceExporter as OTLPTraceExporterGrpc } from "@opentelemetry/exporter-trace-otlp-grpc";
+import { OTLPTraceExporter as OTLPTraceExporterHttp } from "@opentelemetry/exporter-trace-otlp-http";
+import { ExpressInstrumentation } from "@opentelemetry/instrumentation-express";
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+import { NestInstrumentation } from "@opentelemetry/instrumentation-nestjs-core";
+import { PgInstrumentation } from "@opentelemetry/instrumentation-pg";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+import { NodeSDK } from "@opentelemetry/sdk-node";
 import {
   AlwaysOffSampler,
   AlwaysOnSampler,
   ConsoleSpanExporter,
   ParentBasedSampler,
-  TraceIdRatioBasedSampler,
   type Sampler,
   type SpanExporter,
-} from '@opentelemetry/sdk-trace-base';
-import { OTLPTraceExporter as OTLPTraceExporterHttp } from '@opentelemetry/exporter-trace-otlp-http';
-import { OTLPTraceExporter as OTLPTraceExporterGrpc } from '@opentelemetry/exporter-trace-otlp-grpc';
-import { Metadata } from '@grpc/grpc-js';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
-import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { trace, type Tracer } from '@opentelemetry/api';
+  TraceIdRatioBasedSampler,
+} from "@opentelemetry/sdk-trace-base";
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
-} from '@opentelemetry/semantic-conventions';
-import { loadConfigFile } from '../configuration/configuration.js';
-import { TRACING_CONFIG_VALIDATOR } from './tracing-config.validator.js';
+} from "@opentelemetry/semantic-conventions";
 import {
   ConfigTracingExporterType,
   ConfigTracingSamplerType,
-} from '../configuration/config.type.js';
+} from "../configuration/config.type.js";
+import { loadConfigFile } from "../configuration/configuration.js";
+import { TRACING_CONFIG_VALIDATOR } from "./tracing-config.validator.js";
 
-const DEFAULT_TRACER_NAME = 'fsarch';
-const DEFAULT_SAMPLER: ConfigTracingSamplerType = 'parentbased_traceidratio';
-const DEFAULT_SERVICE_NAME = 'fsarch-service';
+const DEFAULT_TRACER_NAME = "fsarch";
+const DEFAULT_SAMPLER: ConfigTracingSamplerType = "parentbased_traceidratio";
+const DEFAULT_SERVICE_NAME = "fsarch-service";
 
 function createSampler(
   samplerType: ConfigTracingSamplerType,
   sampleRatio: number,
 ): Sampler {
   switch (samplerType) {
-    case 'always_on':
+    case "always_on":
       return new AlwaysOnSampler();
-    case 'always_off':
+    case "always_off":
       return new AlwaysOffSampler();
-    case 'traceidratio':
+    case "traceidratio":
       return new TraceIdRatioBasedSampler(sampleRatio);
-    case 'parentbased_always_on':
+    case "parentbased_always_on":
       return new ParentBasedSampler({ root: new AlwaysOnSampler() });
-    case 'parentbased_always_off':
+    case "parentbased_always_off":
       return new ParentBasedSampler({ root: new AlwaysOffSampler() });
-    case 'parentbased_traceidratio':
+    case "parentbased_traceidratio":
       return new ParentBasedSampler({
         root: new TraceIdRatioBasedSampler(sampleRatio),
       });
@@ -58,16 +58,18 @@ function createSampler(
 
 let sdk: NodeSDK | undefined;
 
-function createExporter(exporterConfig: ConfigTracingExporterType): SpanExporter {
+function createExporter(
+  exporterConfig: ConfigTracingExporterType,
+): SpanExporter {
   switch (exporterConfig.type) {
-    case 'console':
+    case "console":
       return new ConsoleSpanExporter();
-    case 'otlp-http':
+    case "otlp-http":
       return new OTLPTraceExporterHttp({
         url: exporterConfig.url,
         headers: exporterConfig.headers,
       });
-    case 'otlp-grpc': {
+    case "otlp-grpc": {
       const metadata = new Metadata();
       for (const [key, value] of Object.entries(exporterConfig.headers ?? {})) {
         metadata.set(key, value);
@@ -130,8 +132,7 @@ export function initializeTracing(defaults?: {
     abortEarly: false,
   });
   if (valid.error) {
-    console.error('error while validating config', valid.error.details);
-    throw new Error('invalid config');
+    throw new Error("invalid config");
   }
 
   const serviceName =
@@ -147,7 +148,9 @@ export function initializeTracing(defaults?: {
         ? { [ATTR_SERVICE_VERSION]: defaults.serviceVersion }
         : {}),
     }),
-    traceExporter: createExporter(tracingConfig.exporter as ConfigTracingExporterType),
+    traceExporter: createExporter(
+      tracingConfig.exporter as ConfigTracingExporterType,
+    ),
     sampler: createSampler(
       tracingConfig.sampler ?? DEFAULT_SAMPLER,
       tracingConfig.sampleRatio ?? 1,

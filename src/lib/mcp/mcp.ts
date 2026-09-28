@@ -1,12 +1,12 @@
-import { Controller, Type } from '@nestjs/common';
+import { Controller, type Type } from "@nestjs/common";
 import {
   McpHttpControllerFor,
   McpStrategy,
   StreamableHttpTransport,
-} from '@rekog/mcp-nest';
-import { CreateMcpStrategyOptions } from './mcp.types.js';
+} from "@rekog/mcp-nest";
+import { CreateMcpStrategyOptions } from "./mcp.types.js";
 
-export const DEFAULT_MCP_ENDPOINT = '/.ai/mcp';
+export const DEFAULT_MCP_ENDPOINT = "/.ai/mcp";
 
 export function createMcpStrategy(
   options: CreateMcpStrategyOptions,
@@ -19,7 +19,9 @@ export function createMcpStrategy(
     version,
     capabilities: capabilities ?? { tools: {} },
     transports: transports ?? [
-      new StreamableHttpTransport({ endpoint: endpoint ?? DEFAULT_MCP_ENDPOINT }),
+      new StreamableHttpTransport({
+        endpoint: endpoint ?? DEFAULT_MCP_ENDPOINT,
+      }),
     ],
     ...rest,
   });

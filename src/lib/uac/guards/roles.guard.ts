@@ -1,9 +1,17 @@
-import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY, TRoleRequirement } from '../decorators/roles.decorator.js';
-import { UacService } from '../uac.service.js';
+import {
+  type CanActivate,
+  type ExecutionContext,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { getRequestFromContext } from "../../auth/get-request-from-context.util.js";
 import { IUser } from "../../auth/types/auth-service.type.js";
-import { getRequestFromContext } from '../../auth/get-request-from-context.util.js';
+import {
+  ROLES_KEY,
+  type TRoleRequirement,
+} from "../decorators/roles.decorator.js";
+import { UacService } from "../uac.service.js";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -21,13 +29,14 @@ export class RolesGuard implements CanActivate {
     const accessToken = user?.getAccessToken?.();
 
     if (user && userId) {
-      user.setPermissionResolver?.((name) => this.uacService.getPermission(userId, name, accessToken));
+      user.setPermissionResolver?.((name) =>
+        this.uacService.getPermission(userId, name, accessToken),
+      );
     }
 
-    const requiredRoles = this.reflector.getAllAndOverride<Array<TRoleRequirement>>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<
+      Array<TRoleRequirement>
+    >(ROLES_KEY, [context.getHandler(), context.getClass()]);
     if (!requiredRoles) {
       return true;
     }
@@ -37,18 +46,26 @@ export class RolesGuard implements CanActivate {
     }
 
     for (const requirement of requiredRoles) {
-      const name = typeof requirement === 'string' ? requirement : requirement.name;
-      const resource = typeof requirement === 'string' ? undefined : requirement.resource(request);
+      const name =
+        typeof requirement === "string" ? requirement : requirement.name;
+      const resource =
+        typeof requirement === "string"
+          ? undefined
+          : requirement.resource(request);
 
-      if (await this.uacService.hasGrant(userId, [name], accessToken, resource)) {
+      if (
+        await this.uacService.hasGrant(userId, [name], accessToken, resource)
+      ) {
         return true;
       }
     }
 
     this.logger.warn(
       `Access denied for user "${userId}": missing required role(s) [${requiredRoles
-        .map((requirement) => (typeof requirement === 'string' ? requirement : requirement.name))
-        .join(', ')}]`,
+        .map((requirement) =>
+          typeof requirement === "string" ? requirement : requirement.name,
+        )
+        .join(", ")}]`,
     );
 
     return false;

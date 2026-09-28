@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { CustomResourceController } from './custom-resource.controller';
-import { CustomResourceService } from './custom-resource.service';
+import { describe, expect, it, vi } from "vitest";
+import { CustomResourceController } from "./custom-resource.controller";
+import { CustomResourceService } from "./custom-resource.service";
 
-describe('CustomResourceController', () => {
-  it('wraps the service result in a data property', async () => {
-    const resources = [{ id: 'part_attachment' }];
+describe("CustomResourceController", () => {
+  it("wraps the service result in a data property", async () => {
+    const resources = [{ id: "part_attachment" }];
     const service = {
       getAll: vi.fn().mockReturnValue(resources),
     } as unknown as CustomResourceService;

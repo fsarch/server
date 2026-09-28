@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import Joi from 'joi';
-import { ModuleConfigurationService } from './module-configuration.service.js';
+import { Module } from "@nestjs/common";
+import Joi from "joi";
+import { ModuleConfigurationService } from "./module-configuration.service.js";
 
 @Module({})
 export class ModuleConfiguration {
@@ -15,7 +15,7 @@ export class ModuleConfiguration {
       module: ModuleConfiguration,
       providers: [
         {
-          provide: 'CONFIG_OPTIONS',
+          provide: "CONFIG_OPTIONS",
           useValue: options,
         },
         {

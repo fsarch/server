@@ -1,21 +1,21 @@
-import { Module } from '@nestjs/common';
-import Joi from 'joi';
-import { CustomResourceController } from './custom-resource.controller.js';
+import { Module } from "@nestjs/common";
+import Joi from "joi";
+import { CustomResourceController } from "./custom-resource.controller.js";
 import {
-  CustomResourceService,
   CUSTOM_RESOURCE,
-} from './custom-resource.service.js';
-import { TCustomResourceDefinition } from './custom-resource.types.js';
+  CustomResourceService,
+} from "./custom-resource.service.js";
+import { TCustomResourceDefinition } from "./custom-resource.types.js";
 
 const CUSTOM_RESOURCE_ID_PATTERN = /^[a-z0-9_]+$/;
 
 const REQUEST_SCHEMA = Joi.object({
   path: Joi.string().required(),
   method: Joi.string()
-    .valid('GET', 'POST', 'PUT', 'PATCH', 'DELETE')
+    .valid("GET", "POST", "PUT", "PATCH", "DELETE")
     .required(),
   auth: Joi.object({
-    type: Joi.string().valid('credential-propagation').required(),
+    type: Joi.string().valid("credential-propagation").required(),
   }).required(),
   queryParams: Joi.object().pattern(
     Joi.string(),
@@ -44,7 +44,7 @@ const CUSTOM_RESOURCE_SCHEMA = Joi.array()
       }).required(),
     }),
   )
-  .unique('id');
+  .unique("id");
 
 export type CustomResourceModuleOptions = {
   resources: TCustomResourceDefinition[];

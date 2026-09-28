@@ -1,19 +1,19 @@
-import { DynamicModule, Global, Module } from '@nestjs/common';
-import { ConfigurationModule } from './configuration/configuration.module.js';
-import { UacModule } from './uac/uac.module.js';
-import {
-  DatabaseModule,
-  DatabaseModuleOptions,
-} from './database/database.module.js';
-import { AuthModule } from './auth/auth.module.js';
+import { type DynamicModule, Global, Module } from "@nestjs/common";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
-import { DeletionModule } from "./deletion/deletion.module.js";
-import { TracingModule } from "./tracing/tracing.module.js";
+import { AuthModule } from "./auth/auth.module.js";
+import { ConfigurationModule } from "./configuration/configuration.module.js";
 import {
   CustomResourceModule,
-  CustomResourceModuleOptions,
+  type CustomResourceModuleOptions,
 } from "./custom-resource/custom-resource.module.js";
+import {
+  DatabaseModule,
+  type DatabaseModuleOptions,
+} from "./database/database.module.js";
+import { DeletionModule } from "./deletion/deletion.module.js";
+import { TracingModule } from "./tracing/tracing.module.js";
+import { UacModule } from "./uac/uac.module.js";
 
 type FSArchOptions = {
   auth?: {};
@@ -36,8 +36,8 @@ type FSArchOptions = {
 })
 export class FsarchModule {
   static register(options: FSArchOptions): DynamicModule {
-    const exports: DynamicModule['exports'] = [];
-    const imports: DynamicModule['imports'] = [ConfigurationModule];
+    const exports: DynamicModule["exports"] = [];
+    const imports: DynamicModule["imports"] = [ConfigurationModule];
     if (options.auth) {
       imports.push(AuthModule);
       exports.push(AuthModule);

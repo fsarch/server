@@ -2,9 +2,9 @@ import {
   Global,
   Injectable,
   Module,
-  OnApplicationShutdown,
-} from '@nestjs/common';
-import { shutdownTracing } from './tracing.js';
+  type OnApplicationShutdown,
+} from "@nestjs/common";
+import { shutdownTracing } from "./tracing.js";
 
 @Injectable()
 class TracingShutdownService implements OnApplicationShutdown {

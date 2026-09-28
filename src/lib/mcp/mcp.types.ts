@@ -1,5 +1,5 @@
-import type { ServerCapabilities } from '@modelcontextprotocol/server';
-import type { McpTransport } from '@rekog/mcp-nest';
+import { ServerCapabilities } from "@modelcontextprotocol/server";
+import { McpTransport } from "@rekog/mcp-nest";
 
 export type McpModuleOptions = {
   /** Defaults to the `name` passed to `FsArchAppBuilder`. */
