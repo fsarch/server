@@ -62,6 +62,12 @@ await app.listen(process.env.PORT ?? 3000);
 A runnable, minimal version of this is in [`example/`](example/README.md) —
 a small REST API consuming this package as a local link (`file:..`).
 
+### Swagger
+
+`.addSwagger(...)` (see Quick Start above) is skipped whenever `NODE_ENV=production`,
+so the docs UI isn't exposed by default in production. Set `ENABLE_SWAGGER_DOCS=true`
+to explicitly re-enable it there. In any other `NODE_ENV`, Swagger is always set up.
+
 ## Configuration (`config.yaml`)
 
 The library loads configuration from `./config.yaml` by default.

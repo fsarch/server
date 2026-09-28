@@ -165,7 +165,10 @@ export class FsArchAppBuilder {
       type: VersioningType.URI,
     });
 
-    if (this.swaggerOptions) {
+    const swaggerEnabled =
+      process.env.NODE_ENV !== "production" || process.env.ENABLE_SWAGGER_DOCS === "true";
+
+    if (swaggerEnabled) {
       for (const { path, title, version, description } of this.swaggerOptions) {
         const config = new DocumentBuilder()
           .setTitle(title ?? this.info.name)
