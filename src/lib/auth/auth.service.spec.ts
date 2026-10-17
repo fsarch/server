@@ -1,15 +1,16 @@
-import { ConfigService } from "@nestjs/config";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ModuleConfigurationService } from "../configuration/module/module-configuration.service";
 import { AuthService } from "./auth.service";
 import { JwtJwkAuthService } from "./jwt-jwk/jwt-jwk-auth.service";
 import { OidcAuthService } from "./oidc/oidc-auth.service";
 import { StaticAuthService } from "./static/static-auth.service";
 
-// Mock ConfigService
-class MockConfigService {
-  get<T = any>(key: string): T {
-    if (key === "auth.type") return "static" as T;
-    if (key?.includes("auth")) return { type: "static" } as T;
+// Mock the (possibly `serviceId`-scoped) AUTH_CONFIG token AuthService now
+// reads `type` from, instead of the global ConfigService directly.
+class MockAuthConfigService {
+  get<T = any>(key?: string): T {
+    if (!key) return { type: "static" } as T;
+    if (key === "type") return "static" as T;
     return null as T;
   }
 }
@@ -34,9 +35,9 @@ describe("AuthService", () => {
   let service: AuthService;
 
   beforeEach(() => {
-    const configService = new MockConfigService();
+    const authConfigService = new MockAuthConfigService();
     service = new AuthService(
-      configService as unknown as ConfigService,
+      authConfigService as unknown as ModuleConfigurationService<any>,
       mockStaticAuthService as unknown as StaticAuthService,
       mockJwtJwkAuthService as unknown as JwtJwkAuthService,
       mockOidcAuthService as unknown as OidcAuthService,

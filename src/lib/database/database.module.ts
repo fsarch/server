@@ -16,15 +16,26 @@ export type DatabaseModuleOptions = {
 
 @Module({})
 export class DatabaseModule {
-  static register(options: DatabaseModuleOptions) {
+  /**
+   * `serviceId`, when set, gives this registration its own named TypeORM
+   * connection (so a mono-service harness can mount several services, each
+   * keeping its own physical database) and resolves its `database` config
+   * section from that service's entry in the top-level `services` array
+   * instead of the flat root config. Omitted (the default), behavior is
+   * identical to today: the default TypeORM connection, flat `database`
+   * config section.
+   */
+  static register(options: DatabaseModuleOptions, serviceId?: string) {
     return {
       module: DatabaseModule,
       imports: [
         TypeOrmModule.forRootAsync({
+          ...(serviceId ? { name: serviceId } : {}),
           imports: [
             ModuleConfiguration.register("DATABASE_CONFIG", {
               validationSchema: DATABASE_CONFIG_VALIDATOR,
               name: "database",
+              serviceId,
             }),
           ],
           inject: ["DATABASE_CONFIG"],

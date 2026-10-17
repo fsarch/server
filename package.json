@@ -26,6 +26,10 @@
       "import": "./dist/lib/configuration/index.js",
       "types": "./dist/lib/configuration/index.d.ts"
     },
+    "./database": {
+      "import": "./dist/lib/database/index.js",
+      "types": "./dist/lib/database/index.d.ts"
+    },
     "./deletion": {
       "import": "./dist/lib/deletion/index.js",
       "types": "./dist/lib/deletion/index.d.ts"

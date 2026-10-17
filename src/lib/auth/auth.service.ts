@@ -1,6 +1,6 @@
-import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Inject, Injectable } from "@nestjs/common";
 import { ConfigAuthType } from "../configuration/config.type.js";
+import { ModuleConfigurationService } from "../configuration/module/module-configuration.service.js";
 import { JwtJwkAuthService } from "./jwt-jwk/jwt-jwk-auth.service.js";
 import { OidcAuthService } from "./oidc/oidc-auth.service.js";
 import { StaticAuthService } from "./static/static-auth.service.js";
@@ -11,12 +11,17 @@ export class AuthService implements IAuthService {
   private readonly authService: IAuthService;
 
   constructor(
-    readonly configService: ConfigService,
+    @Inject("AUTH_CONFIG")
+    readonly authConfigService: ModuleConfigurationService<ConfigAuthType>,
     readonly staticAuthService: StaticAuthService,
     readonly jwtJwkAuthService: JwtJwkAuthService,
     readonly oidcAuthService: OidcAuthService,
   ) {
-    const authType = configService.get<ConfigAuthType["type"]>("auth.type");
+    // Reads via the (possibly `serviceId`-scoped) `AUTH_CONFIG` token rather
+    // than the global `ConfigService` directly, so this resolves the right
+    // mounted service's `auth.type` in a mono-service process instead of
+    // always the flat root config.
+    const authType = authConfigService.get("type") as ConfigAuthType["type"];
 
     if (authType === "static") {
       this.authService = staticAuthService;

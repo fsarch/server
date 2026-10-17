@@ -9,6 +9,7 @@ export class ModuleConfiguration {
     options: {
       name: string;
       validationSchema?: Joi.Schema;
+      serviceId?: string;
     },
   ) {
     return {

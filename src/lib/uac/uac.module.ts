@@ -9,36 +9,42 @@ import { TokenUacModule } from "./token/token.module.js";
 import { CREATE_TOKEN_UAC_CONFIG_VALIDATOR } from "./token/token-uac-config.validator.js";
 import { UacService } from "./uac.service.js";
 
-@Module({
-  imports: [
-    StaticUacModule,
-    TokenUacModule,
-    ModuleConfiguration.register("UAC_CONFIG", {
-      name: "uac",
-    }),
-  ],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
-    },
-    UacService,
-  ],
-  exports: [UacService],
-})
+@Module({})
 export class UacModule {
-  static register(options: { roles: Array<string> }): DynamicModule {
+  /**
+   * `serviceId`, when set, scopes the `uac` config section to that entry of
+   * the top-level `services` array and registers `RolesGuard` as a plain,
+   * module-local provider instead of a process-wide `APP_GUARD` — same
+   * rationale as `AuthModule.register()`. Omitted (the default), behavior is
+   * unchanged: `RolesGuard` applies to every route in the process.
+   */
+  static register(
+    options: { roles: Array<string> },
+    serviceId?: string,
+  ): DynamicModule {
     return {
       module: UacModule,
       imports: [
+        StaticUacModule.register(serviceId),
+        TokenUacModule.register(serviceId),
         ModuleConfiguration.register("UAC_CONFIG", {
           validationSchema: Joi.alternatives(
             CREATE_STATIC_UAC_CONFIG_VALIDATOR(options.roles),
             CREATE_TOKEN_UAC_CONFIG_VALIDATOR(options.roles),
           ),
           name: "uac",
+          serviceId,
         }),
       ],
+      providers: [
+        UacService,
+        ...(serviceId
+          ? [RolesGuard]
+          : [{ provide: APP_GUARD, useClass: RolesGuard }]),
+      ],
+      // Same reasoning as `AuthModule.register()`: `RolesGuard` is only its
+      // own exportable provider token in the `serviceId` branch.
+      exports: serviceId ? [UacService, RolesGuard] : [UacService],
     };
   }
 }

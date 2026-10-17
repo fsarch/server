@@ -39,7 +39,7 @@ export class FsarchModule {
     const exports: DynamicModule["exports"] = [];
     const imports: DynamicModule["imports"] = [ConfigurationModule];
     if (options.auth) {
-      imports.push(AuthModule);
+      imports.push(AuthModule.register());
       exports.push(AuthModule);
     }
 
