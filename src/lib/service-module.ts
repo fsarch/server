@@ -143,6 +143,20 @@ export function createServiceModule(
           }))
         : [];
 
+      // Same reasoning as `repositoryProviders` above, but for services that
+      // inject the `DataSource` itself via `@InjectDataSource()` (no second
+      // arg) instead of going through a repository — that decorator also
+      // always resolves the *default*-connection token.
+      const dataSourceProviders: Array<Provider> = registerOptions.connectionName
+        ? [
+            {
+              provide: getDataSourceToken(),
+              useFactory: (dataSource: DataSource) => dataSource,
+              inject: [getDataSourceToken(registerOptions.connectionName)],
+            },
+          ]
+        : [];
+
       return {
         module: GeneratedServiceModule,
         imports: [
@@ -154,7 +168,11 @@ export function createServiceModule(
           ...(registerOptions.imports ?? []),
         ],
         controllers: options.controllers ?? [],
-        providers: [...(options.providers ?? []), ...repositoryProviders],
+        providers: [
+          ...(options.providers ?? []),
+          ...repositoryProviders,
+          ...dataSourceProviders,
+        ],
         exports: options.exports ?? [],
       };
     },
