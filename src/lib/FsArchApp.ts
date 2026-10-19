@@ -56,6 +56,7 @@ export type ServiceMountDescriptor = {
   swagger?: SwaggerOptionsType;
   auth?: boolean;
   uac?: { roles: Array<string> };
+  softDeletion?: boolean;
 };
 
 export class FsArchAppBuilder {
@@ -253,6 +254,7 @@ export class FsArchAppBuilder {
         connectionName: descriptor.id,
         guards,
         imports: serviceModuleImports,
+        deletion: !!descriptor.softDeletion,
       });
       const routedModule = registeredServiceModule.module as Type<any>;
 

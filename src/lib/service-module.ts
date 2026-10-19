@@ -11,6 +11,7 @@ import {
   TypeOrmModule,
 } from "@nestjs/typeorm";
 import { DataSource, EntitySchema } from "typeorm";
+import { DeletionModule } from "./deletion/deletion.module.js";
 
 export type ServiceModuleOptions = {
   entities: Array<Function | EntitySchema>;
@@ -58,6 +59,19 @@ export type ServiceModuleRegisterOptions = {
    * not just alongside this module in some wrapper module.
    */
   imports?: NonNullable<DynamicModule["imports"]>;
+  /**
+   * Mirrors `.enableSoftDeletion()` for this particular mount: wires up
+   * `DeletionModule.register({}, connectionName, <this module's freshly
+   * generated class>)` as one of this module's own imports. Must happen
+   * *here*, inside `register()`, rather than being passed in via the
+   * `imports` option above — `DeletionExplorer`'s module-scoped discovery
+   * (see `DeletionModule.register()`'s doc comment) needs a reference to
+   * the exact `GeneratedServiceModule` class this call creates, which
+   * doesn't exist yet at the point a caller would otherwise have to build
+   * that imports array. Omitted (the default), no `DeletionModule` is
+   * added - identical to today.
+   */
+  deletion?: boolean;
 };
 
 export type ServiceModule = {
@@ -157,6 +171,16 @@ export function createServiceModule(
           ]
         : [];
 
+      const deletionImports: Array<DynamicModule> = registerOptions.deletion
+        ? [
+            DeletionModule.register(
+              {},
+              registerOptions.connectionName,
+              GeneratedServiceModule,
+            ),
+          ]
+        : [];
+
       return {
         module: GeneratedServiceModule,
         imports: [
@@ -165,6 +189,7 @@ export function createServiceModule(
             registerOptions.connectionName,
           ),
           ...staticImports,
+          ...deletionImports,
           ...(registerOptions.imports ?? []),
         ],
         controllers: options.controllers ?? [],

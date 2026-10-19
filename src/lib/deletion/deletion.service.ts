@@ -1,9 +1,10 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SchedulerRegistry } from "@nestjs/schedule";
 import { CronJob } from "cron";
 import { Span } from "../tracing/index.js";
-import { DELETION_EVENT } from "./constants.js";
+import { DELETION_SCOPE, getDeletionCronJobName, getDeletionEventName } from "./constants.js";
+import { DeletionScope } from "./deletion.module.js";
 import { ProcessedDeletionConfig } from "./interfaces/deletion-config.interface.js";
 import { HardDeleteEvent } from "./interfaces/deletion-event.interface.js";
 
@@ -14,6 +15,7 @@ export class DeletionService {
   constructor(
     private readonly schedulerRegistry: SchedulerRegistry,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(DELETION_SCOPE) private readonly scope: DeletionScope,
   ) {}
 
   /**
@@ -33,7 +35,10 @@ export class DeletionService {
       timezone,
     );
 
-    this.schedulerRegistry.addCronJob("metric-purge", job);
+    this.schedulerRegistry.addCronJob(
+      getDeletionCronJobName(this.scope.serviceId),
+      job,
+    );
     job.start();
 
     this.logger.log(
@@ -61,7 +66,7 @@ export class DeletionService {
       getCutOffDate: (_entity: string) => cutoffDate,
     };
 
-    this.eventEmitter.emit(DELETION_EVENT, payload);
+    this.eventEmitter.emit(getDeletionEventName(this.scope.serviceId), payload);
 
     this.logger.log(
       `Deletion event emitted with cutoff date: ${cutoffDate.toISOString()}`,
