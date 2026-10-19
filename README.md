@@ -512,6 +512,84 @@ export class GreetingToolProvider {
 
 See [`src/lib/mcp/README.md`](./src/lib/mcp/README.md) for the full list of re-exported decorators/types and design notes.
 
+### Mono-Service Mounting
+
+Several services can share one process — one Node/Nest/TypeORM/OTel memory
+footprint instead of one per service — without redesigning the services
+themselves. A service package exposes its feature module via
+`createServiceModule()` instead of a hand-written `@Module()`:
+
+```ts
+import { createServiceModule } from '@fsarch/server';
+import { User } from './database/entities/user.entity.js';
+import { UserController } from './controllers/user/user.controller.js';
+import { UserService } from './controllers/user/user.service.js';
+
+export const UserServiceModule = createServiceModule({
+  entities: [User],
+  controllers: [UserController],
+  providers: [UserService],
+  exports: [UserService],
+});
+```
+
+`UserServiceModule.register()` with no arguments (used by that service's own
+standalone `main.ts`) binds to the default TypeORM connection, no guards —
+identical to today's behavior. A mono-service harness instead calls
+`FsArchAppBuilder.addService()` once per mounted service:
+
+```ts
+import { FsArchAppBuilder } from '@fsarch/server';
+
+const app = await new FsArchAppBuilder(RootModule, { name: 'Mono-Service', version: '1.0.0' })
+  .addService({
+    id: 'user-main',
+    module: UserServiceModule,
+    entities: [User],
+    migrations: [...],
+    swagger: { title: 'User Service' },
+    auth: true,
+    uac: { roles: ['read_user', 'write_user'] },
+  })
+  .build();
+```
+
+Each `.addService()` entry gets, fully isolated from every other mounted
+service:
+
+- its own **named TypeORM connection** (`id` is the connection name) — a
+  separate physical database per mount,
+- its own **non-global Auth/UAC guard**, only if `auth`/`uac` is set,
+- its own **route prefix** (`/v1/<id>/...` — NestJS's URI versioning prefix
+  comes *before* the mount's own prefix, not after),
+- its own **Swagger document** at `/<id>`, only if `swagger` is set.
+
+Each mount's config lives under its own entry in the harness process's
+`config.yaml`, in a top-level `services` array — `config` is the exact same
+shape as that service's standalone `config.yaml`:
+
+```yaml
+services:
+  - type: user-service
+    id: user-main
+    config:
+      auth: { type: static, secret: '...' }
+      uac: { type: static, users: [...] }
+      database: { type: postgres, host: ..., database: user_main }
+```
+
+**What this requires from the mounted service** (see the
+[integration plan](./INTEGRATIONSPLAN.md#55-mono-service-mounting-optional)
+for the full checklist): exactly one `createServiceModule()` call per
+service (no nested, hand-written modules doing their own
+`TypeOrmModule.forFeature()`); `@InjectRepository()`/`@InjectDataSource()`
+(the latter needs `@fsarch/server@0.5.1`+) stay unqualified in the service's
+own code — `createServiceModule()` rebinds them to the named connection when
+mounted; any config section outside `auth`/`uac`/`database` that the service
+reads itself (e.g. its own `ConfigModule.forRoot()`) needs to become aware of
+an optional `serviceId` and read from that mount's `services[].config` entry
+instead of the root config when one is given.
+
 ## CLI
 
 `@fsarch/server` liefert ein CLI-Binary `fsarch-server` mit:

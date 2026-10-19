@@ -13,9 +13,13 @@ Dieser Plan dient als **Schritt-für-Schritt-Anleitung für eine KI (oder Entwic
 ```
 my-microservice/
 ├── src/
-│   ├── main.ts                          # Application Entry Point
-│   ├── app.module.ts                    # Root NestJS Module
-│   ├── app.module.spec.ts               # ⭐ Tests hier!
+│   ├── main.ts                          # Dünne Bootstrap-Shell (liest aus lib/index.ts)
+│   │
+│   ├── lib/                              # Feature-Modul + Mono-Service-Descriptor
+│   │   ├── index.ts                     # Exportiert Modul + `descriptor`
+│   │   ├── index.spec.ts                # ⭐ Tests hier!
+│   │   ├── my-microservice.module.ts    # createServiceModule() — EIN flaches Modul
+│   │   └── my-microservice.module.spec.ts # ⭐ Tests hier!
 │   │
 │   ├── database/
 │   │   ├── index.ts                     # DATABASE_OPTIONS Export
@@ -27,11 +31,7 @@ my-microservice/
 │   │       └── *.ts
 │   │
 │   ├── controllers/
-│   │   ├── controllers.module.ts        # Aggregiert alle Controller
-│   │   ├── controllers.module.spec.ts   # ⭐ Tests
 │   │   └── user/
-│   │       ├── user.module.ts
-│   │       ├── user.module.spec.ts       # ⭐ Tests
 │   │       ├── user.controller.ts
 │   │       ├── user.controller.spec.ts  # ⭐ Controller Tests
 │   │       ├── user.service.ts
@@ -61,6 +61,8 @@ my-microservice/
 ├── .eslintrc.json
 └── .prettierrc
 ```
+
+**Wichtig — kein `app.module.ts`, kein `*.module.ts` pro Ressource mehr:** Controller, Service und Entities jeder Ressource werden direkt in den EINEN `createServiceModule()`-Aufruf in `src/lib/my-microservice.module.ts` eingetragen (`controllers`/`providers`-Arrays), statt in einem eigenen, handgeschriebenen `@Module()`. Siehe Phase 5.1. Das ist nicht nur weniger Boilerplate — es ist auch die Voraussetzung dafür, dass der Service später ohne Code-Änderung in einen Mono-Service-Prozess gemountet werden kann (Phase 5.5): `createServiceModule()`s `TypeOrmModule.forFeature(entities, connectionName)` bindet nur Controller/Provider, die *direkt* in diesem einen Modul deklariert sind — verschachtelte, handgeschriebene Module würden bei einer benannten DB-Connection weiterhin an die Default-Connection binden.
 
 **Begründung für Co-Location:**
 - ✅ Bessere Lesbarkeit und Wartbarkeit
@@ -98,12 +100,12 @@ my-microservice/
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@fsarch/server": "^0.1.0",
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
-    "@nestjs/swagger": "^11.0.0",
-    "@nestjs/typeorm": "^11.0.0",
+    "@fsarch/server": "^0.5.1",
+    "@nestjs/common": "^12.1.0",
+    "@nestjs/core": "^12.1.0",
+    "@nestjs/platform-express": "^12.1.0",
+    "@nestjs/swagger": "^12.0.2",
+    "@nestjs/typeorm": "^12.0.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "pg": "^8.22.0",
@@ -111,8 +113,8 @@ my-microservice/
     "typeorm": "^1.1.0"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
+    "@nestjs/cli": "^12.0.7",
+    "@nestjs/testing": "^12.1.0",
     "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^4.0.0",
     "eslint": "^10.0.0",
@@ -123,6 +125,8 @@ my-microservice/
   }
 }
 ```
+
+**Wichtig:** `@nestjs/*`-Versionen hier müssen zur Version passen, die `@fsarch/server` selbst als `dependencies` mitbringt (aktuell `^12.1.0`) — bei abweichenden Majors/Minors kann es zu zwei getrennten Nest-Instanzen im Dependency-Baum kommen, wodurch z. B. ein per `@UseGuards(AuthGuard)` referenzierter Guard seine eigenen Abhängigkeiten nicht mehr auflösen kann. Vor dem Anlegen eines neuen Service kurz `npm view @fsarch/server dependencies` (oder die `package.json` dieses Repos) gegen die hier verwendeten Versionen prüfen.
 
 ### 1.2 TypeScript Konfiguration
 
@@ -220,7 +224,7 @@ database:
 # =============================================================================
 # TRACING (optional, OpenTelemetry)
 # `serviceName` is required here when the process is started with the
-# `@fsarch/server/register` preload (see Phase 5.2) — that preload runs
+# `@fsarch/server/register` preload (see Phase 5.3) — that preload runs
 # before FsArchAppBuilder exists, so it has no `name`/`version` to fall back to.
 # =============================================================================
 # tracing:
@@ -232,6 +236,20 @@ database:
 #     type: otlp-http
 #     url: http://localhost:4318/v1/traces
 ```
+
+**Mono-Service-Betrieb (optional, siehe Phase 5.5):** Wird dieser Service später zusammen mit anderen in einem gemeinsamen Prozess gemountet, liegt `config.yaml` nicht mehr flach vor, sondern als `services:`-Liste — `config:` je Eintrag ist 1:1 die obige Standalone-Config, copy-paste-kompatibel:
+
+```yaml
+services:
+  - type: my-microservice
+    id: my-microservice-main
+    config:
+      auth: { ... }     # wie oben
+      uac: { ... }       # wie oben
+      database: { ... }  # wie oben
+```
+
+Für Standalone-Betrieb (ohne `.addService()`) bleibt das flache `config.yaml` von oben unverändert gültig.
 
 ---
 
@@ -663,62 +681,86 @@ export class UserController {
 }
 ```
 
-### 4.5 Module
+### 4.5 Kein eigenes Modul pro Ressource
 
-**user.module.ts:**
-```typescript
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../../database/entities/user.entity.js';
-import { UserController } from './user.controller.js';
-import { UserService } from './user.service.js';
-
-@Module({
-  imports: [TypeOrmModule.forFeature([User])],
-  controllers: [UserController],
-  providers: [UserService],
-  exports: [UserService],
-})
-export class UserModule {}
-```
-
-**controllers.module.ts:**
-```typescript
-import { Module } from '@nestjs/common';
-import { HealthModule } from './health/health.module.js';
-import { UserModule } from './user/user.module.js';
-
-@Module({
-  imports: [HealthModule, UserModule],
-})
-export class ControllersModule {}
-```
+Anders als in älteren `@fsarch/server`-Services wird hier **kein** `user.module.ts` und **kein** aggregierendes `controllers.module.ts` mehr geschrieben. `UserController` und `UserService` werden stattdessen direkt in den `controllers`/`providers`-Arrays des einen `createServiceModule()`-Aufrufs eingetragen — siehe Phase 5.1. `TypeOrmModule.forFeature([User])` übernimmt `createServiceModule()` ebenfalls automatisch (aus `entities`), kein eigener `@nestjs/typeorm`-Import in diesem Modul nötig.
 
 ---
 
 ## 🚀 Phase 5: Application Bootstrap
 
-### 5.1 App Module
+### 5.1 Feature-Modul
 
-**Pfad:** `/src/app.module.ts`
+**Pfad:** `/src/lib/my-microservice.module.ts`
+
+Statt eines handgeschriebenen `app.module.ts` wird das eine Feature-Modul des
+Service über `@fsarch/server`s `createServiceModule()`-Helper erzeugt. Er
+übernimmt `TypeOrmModule.forFeature(entities, connectionName)` intern —
+`connectionName` bleibt `undefined` (Standalone, Default-Connection) außer ein
+Mono-Service-Harness ruft `.register({ connectionName, ... })` auf (Phase
+5.5). Alle Controller/Provider aus Phase 4 landen hier direkt, **nicht** in
+eigenen, verschachtelten Modulen:
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ControllersModule } from './controllers/controllers.module.js';
+import { createServiceModule } from '@fsarch/server';
+import { User } from '../database/entities/user.entity.js';
+import { UserController } from '../controllers/user/user.controller.js';
+import { UserService } from '../controllers/user/user.service.js';
+import { HealthController } from '../controllers/health/health.controller.js';
 
-@Module({
-  imports: [ControllersModule],
-})
-export class AppModule {}
+export const MyMicroserviceModule = createServiceModule({
+  entities: [User],
+  controllers: [HealthController, UserController],
+  providers: [UserService],
+  exports: [UserService],
+});
 ```
 
-### 5.2 Main.ts
+Für jede weitere Ressource (Phase 4 wiederholt für z. B. `Product`): Entity zu
+`entities`, Controller zu `controllers`, Service zu `providers` hinzufügen —
+sonst nichts.
+
+### 5.2 Descriptor
+
+**Pfad:** `/src/lib/index.ts`
+
+Der `descriptor` ist die eingefrorene Form der Builder-Aufrufkette, die
+`main.ts` sonst direkt ausführen würde (`.enableAuth()`, `.setDatabase()`,
+`.addSwagger()`, …) — als Daten statt als Methodenaufrufe. `main.ts` liest
+seine Werte daraus (Phase 5.3); ein späterer Mono-Service-Harness (Phase 5.5)
+spreadet denselben Descriptor in `.addService({ id, ...descriptor })`, ohne
+dass irgendetwas doppelt gepflegt werden muss:
+
+```typescript
+import { DATABASE_OPTIONS } from '../database/index.js';
+import { MyMicroserviceModule } from './my-microservice.module.js';
+
+export { MyMicroserviceModule };
+export const entities = DATABASE_OPTIONS.entities;
+export const migrations = DATABASE_OPTIONS.migrations;
+
+export const descriptor = {
+  module: MyMicroserviceModule,
+  entities,
+  migrations,
+  swagger: {
+    title: 'My-Microservice API',
+    description: 'REST API Dokumentation',
+    version: '1.0.0',
+    path: 'docs',
+  },
+  auth: true,
+  // uac: { roles: Object.values(Role) }, // nur falls .enableUac(...) genutzt wird
+};
+```
+
+### 5.3 Main.ts
 
 **Pfad:** `/src/main.ts`
 
 **Wichtig, falls Tracing (`tracing.enabled: true`) genutzt wird:** Auto-
 Instrumentierung (HTTP/Express/Postgres/Nest) patcht Module beim ersten
-Laden — das funktioniert nur, wenn sie *vor* dem `import { AppModule } ...`
+Laden — das funktioniert nur, wenn sie *vor* dem `import { descriptor } ...`
 unten aktiv ist, also nicht durch Code in `main.ts` selbst, sondern über
 Node's `--import`-Flag beim Prozessstart:
 
@@ -733,25 +775,23 @@ die Auto-Instrumentierung patcht nichts mehr, da `@nestjs/core` durch den
 `import` unten längst geladen ist.
 
 ```typescript
-import { AppModule } from './app.module.js';
 import { FsArchAppBuilder } from '@fsarch/server';
-import { DATABASE_OPTIONS } from './database/index.js';
+import { descriptor } from './lib/index.js';
 
 async function bootstrap() {
   console.log('Starting My-Microservice...');
 
-  const app = await new FsArchAppBuilder(AppModule, {
+  // `descriptor.module.register()` ohne Argumente = Default-Connection,
+  // keine Guards — exakt das Verhalten eines handgeschriebenen AppModule.
+  // Die Builder-Aufrufe unten lesen nur noch ihre Werte aus `descriptor`,
+  // statt sie hier zu duplizieren.
+  const app = await new FsArchAppBuilder(descriptor.module.register(), {
     name: 'My-Microservice',
     version: '1.0.0',
   })
-    .addSwagger({
-      title: 'My-Microservice API',
-      description: 'REST API Dokumentation',
-      version: '1.0.0',
-      path: 'docs',
-    })
+    .addSwagger(descriptor.swagger)
     .enableAuth()
-    .setDatabase(DATABASE_OPTIONS)
+    .setDatabase({ entities: descriptor.entities, migrations: descriptor.migrations })
     .enableSoftDeletion()
     .build();
 
@@ -775,12 +815,12 @@ bootstrap().catch((error) => {
 });
 ```
 
-### 5.3 Custom Resource (optional)
+### 5.4 Custom Resource (optional)
 
 `.addCustomResource()` registriert einen `GET /.meta/custom-resources`-Endpunkt, über den der Service bekannt gibt, welche Resource-Typen er anbietet und wie man sie listet bzw. einzeln abruft (Path, HTTP-Methode, Auth-Strategie) — ohne dass Konsumenten (z. B. ein gemeinsames Frontend) die Routen pro Service hart codieren müssen. Anders als Auth/UAC/Database läuft das **nicht** über `config.yml`, sondern direkt im Code — ein Aufruf pro Resource-Typ, analog zu `.addSwagger()`:
 
 ```typescript
-const app = await new FsArchAppBuilder(AppModule, {
+const app = await new FsArchAppBuilder(descriptor.module.register(), {
   name: 'My-Microservice',
   version: '1.0.0',
 })
@@ -827,11 +867,67 @@ const app = await new FsArchAppBuilder(AppModule, {
 
 Details: Abschnitt [„Custom Resource“](./README.md#custom-resource) in der Haupt-README von `@fsarch/server`.
 
+### 5.5 Mono-Service Mounting (optional)
+
+Mehrere nach diesem Plan gebaute Services (jeder nach dem Library+Shell-Muster aus 5.1/5.2) lassen sich **ohne Code-Änderung am Service selbst** in einem gemeinsamen Prozess zusammenfassen, um den fixen Node/Nest-Sockel nur einmal statt N-mal zu bezahlen. Das übernimmt ein separates, dünnes Harness-Repo — nicht der Service selbst:
+
+```typescript
+import { FsArchAppBuilder } from '@fsarch/server';
+import { Module } from '@nestjs/common';
+import { descriptor as userServiceDescriptor } from 'user-service/dist/lib/index.js';
+import { descriptor as billingServiceDescriptor } from 'billing-service/dist/lib/index.js';
+
+@Module({})
+class RootModule {}
+
+const app = await new FsArchAppBuilder(RootModule, {
+  name: 'Mono-Service',
+  version: '1.0.0',
+})
+  .addService({ id: 'user-main', ...userServiceDescriptor })
+  .addService({ id: 'billing-main', ...billingServiceDescriptor })
+  .build();
+
+await app.listen(process.env.PORT ?? 3000);
+```
+
+Jeder `.addService({ id, ...descriptor })`-Eintrag bekommt automatisch:
+
+- eine **eigene, benannte TypeORM-Connection** (Name = `id`) — vollständig getrennte Datenbank pro Mount,
+- einen **eigenen, nicht-globalen Auth-/UAC-Guard**, falls `descriptor.auth`/`descriptor.uac` gesetzt ist — kein gemeinsamer Login über Mounts hinweg,
+- einen **eigenen Routen-Präfix** (`/v1/<id>/...` — die NestJS-Versionierung steht *vor* dem Präfix, nicht danach),
+- ein **eigenes Swagger-Dokument** unter `/<id>` (falls `descriptor.swagger` gesetzt ist).
+
+Die `config.yaml` des Harness-Prozesses listet jeden Mount als Eintrag im `services:`-Array (siehe Phase 2) — `config:` je Eintrag ist 1:1 die Standalone-`config.yaml` des jeweiligen Service-Typs:
+
+```yaml
+services:
+  - type: user-service
+    id: user-main
+    config:
+      auth: { type: static, secret: '...' }
+      uac: { type: static, users: [...] }
+      database: { type: postgres, host: ..., database: user_main }
+  - type: billing-service
+    id: billing-main
+    config:
+      auth: { type: static, secret: '...' }
+      database: { type: postgres, host: ..., database: billing_main }
+```
+
+**Voraussetzungen, damit ein nach diesem Plan gebauter Service mountbar bleibt** (alle bereits durch Phase 5.1/5.2 erfüllt, wenn der Plan befolgt wurde):
+
+- Genau **ein** `createServiceModule()`-Aufruf, keine verschachtelten, handgeschriebenen `@Module()`s mit eigenem `TypeOrmModule.forFeature(...)` — eine benannte Connection bindet nur Controller/Provider, die *direkt* im generierten Modul deklariert sind.
+- `@InjectRepository(Entity)` und `@InjectDataSource()` (ab `@fsarch/server@0.5.1`) im Service-Code bleiben unverändert, unqualifiziert — `createServiceModule()` bindet sie bei gesetzter `connectionName` automatisch an die benannte Connection um.
+- Nutzt der Service **eigene** `@nestjs/config`-Sections außerhalb von `auth`/`uac`/`database` (z. B. ein selbstgeschriebenes `ConfigModule.forRoot({ load: [...] })` für Service-spezifische Settings), muss dessen Loader-Funktion optional eine `serviceId` annehmen und bei gesetzter `serviceId` aus dem passenden `services[].config`-Eintrag statt aus der Root-Config lesen — und `isGlobal: !serviceId`, damit zwei gemountete Instanzen sich nicht gegenseitig überschreiben. `auth`/`uac`/`database` brauchen das nicht, die sind bereits serviceId-bewusst (siehe `ModuleConfigurationService`).
+- Modul-Constructor-Seiteneffekte (z. B. Daten aus der Config in die DB seeden) gehören in einen `OnModuleInit`-Provider statt in den Konstruktor eines `@Module()` — `createServiceModule()` erzeugt kein eigenes Modul mit Constructor-Hook.
+
 ---
 
 ## 📝 Phase 6: Health Check (optional)
 
-**health.controller.ts:**
+**Pfad:** `/src/controllers/health/health.controller.ts`
+
 ```typescript
 import { Controller, Get } from '@nestjs/common';
 import { Public } from '@fsarch/server/auth';
@@ -852,16 +948,11 @@ export class HealthController {
 }
 ```
 
-**health.module.ts:**
-```typescript
-import { Module } from '@nestjs/common';
-import { HealthController } from './health.controller.js';
-
-@Module({
-  controllers: [HealthController],
-})
-export class HealthModule {}
-```
+Kein eigenes `health.module.ts` — `HealthController` wird direkt in das
+`controllers`-Array von `createServiceModule()` (Phase 5.1) eingetragen, wie
+im Beispiel dort bereits gezeigt. `@Public()` macht die Route unabhängig
+davon, ob/wie der Service gemountet wird, immer unauthentifiziert
+erreichbar.
 
 ---
 
@@ -1168,14 +1259,15 @@ jobs:
   - [ ] DTOs (Create, Response)
   - [ ] Service implementieren
   - [ ] Controller implementieren
-  - [ ] Module Datei erstellen
-- [ ] ControllersModule als Aggregator
+  - [ ] (kein eigenes Module File — Eintrag in Phase 5.1's `createServiceModule()`)
 
 ### [ ] Phase 5: Application Bootstrap
-- [ ] AppModule erstellen
-- [ ] main.ts mit FsArchAppBuilder
+- [ ] Feature-Modul via `createServiceModule()` (`src/lib/<service>.module.ts`)
+- [ ] `descriptor` exportieren (`src/lib/index.ts`)
+- [ ] main.ts mit FsArchAppBuilder, liest aus `descriptor`
 - [ ] Custom Resource registrieren (optional, `.addCustomResource()` je Resource-Typ)
-- [ ] Health Check hinzufügen
+- [ ] Health Check hinzufügen (Controller ins `createServiceModule()`-Array, kein eigenes Modul)
+- [ ] Mono-Service-mountbar? (optional, meist automatisch erfüllt): genau ein `createServiceModule()`-Aufruf, keine eigene `@nestjs/config`-Section ohne `serviceId`-Awareness, keine Modul-Constructor-Seiteneffekte
 
 ### [ ] Phase 6: Testing
 - [ ] Vitest konfigurieren
@@ -1362,23 +1454,11 @@ export class ProductController {
 }
 EOF
 
-cat > src/controllers/product/product.module.ts << 'EOF'
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Product } from '../../database/entities/product.entity.js';
-import { ProductController } from './product.controller.js';
-import { ProductService } from './product.service.js';
-
-@Module({
-  imports: [TypeOrmModule.forFeature([Product])],
-  controllers: [ProductController],
-  providers: [ProductService],
-})
-export class ProductModule {}
-EOF
-
-# 5. ControllersModule aktualisieren
-# Füge ProductModule zu src/controllers/controllers.module.ts hinzu
+# 5. Feature-Modul (src/lib/<service>.module.ts) aktualisieren:
+#    - Product zu entities hinzufügen
+#    - ProductController zu controllers hinzufügen
+#    - ProductService zu providers (und ggf. exports) hinzufügen
+#    Kein eigenes product.module.ts, kein ControllersModule-Aggregator.
 
 # 6. DATABASE_OPTIONS aktualisieren
 # Füge Product zu src/database/index.ts entities hinzu
@@ -1424,7 +1504,7 @@ Dieser Integrationsplan bietet eine **vollständige Anleitung** für den Aufbau 
 6. ✅ Die Anwendung korrekt zu booten
 7. ✅ Best Practices und Konventionen einzuhalten
 
-Der Plan garantiert eine **konsistente, wartbare und skalierbare** Microservice-Architektur mit @fsarch/server.
+Der Plan garantiert eine **konsistente, wartbare und skalierbare** Microservice-Architektur mit @fsarch/server — und, als Nebeneffekt des Library+Shell-Musters aus Phase 5.1/5.2, dass sich der entstehende Service jederzeit später ohne Code-Änderung in einen Mono-Service-Prozess mounten lässt (Phase 5.5), falls der Ressourcenverbrauch vieler durchgängig idler Standalone-Deployments das irgendwann nötig macht.
 
 ---
 
