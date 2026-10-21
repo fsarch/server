@@ -16,7 +16,7 @@ import {
   type Sampler,
   type SpanExporter,
   TraceIdRatioBasedSampler,
-} from "@opentelemetry/sdk-trace-base";
+} from "@opentelemetry/sdk-trace";
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,

@@ -2,16 +2,16 @@ import { SpanStatusCode } from "@opentelemetry/api";
 import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
-} from "@opentelemetry/sdk-trace-base";
-import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+  TracerProvider,
+} from "@opentelemetry/sdk-trace";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const exporter = new InMemorySpanExporter();
 // A provider that isn't registered as the global tracer provider: spans are
 // captured directly through it instead of routing through `@opentelemetry/api`'s
 // global registration, which is process-wide state other spec files touch too.
-const provider = new NodeTracerProvider({
-  spanProcessors: [new SimpleSpanProcessor(exporter)],
+const provider = new TracerProvider({
+  spanProcessors: [new SimpleSpanProcessor({ exporter })],
 });
 
 vi.mock("./tracing.js", () => ({
