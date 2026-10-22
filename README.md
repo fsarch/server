@@ -562,7 +562,25 @@ service:
 - its own **non-global Auth/UAC guard**, only if `auth`/`uac` is set,
 - its own **route prefix** (`/v1/<id>/...` — NestJS's URI versioning prefix
   comes *before* the mount's own prefix, not after),
-- its own **Swagger document** at `/<id>`, only if `swagger` is set.
+- its own **Swagger document** at `/<id>`, only if `swagger` is set,
+- its own **custom resources** at `/v1/<id>/.meta/custom-resources`, only if
+  `customResources` is set — written exactly as for `.addCustomResource()`;
+  their `apiRoutes` paths are rewritten to the mounted routes automatically
+  (`/v1/parts` → `/v1/<id>/parts`),
+- its own **MCP server** at `/<id>/.ai/mcp` (or `/<id>` + `mcp.endpoint`),
+  only if `mcp` is set — serving only this mount's `@McpController()` tools,
+  bound to this mount's provider instances and behind its auth guard.
+  There's no need for a process-wide `.enableMcp()` in a harness; it would
+  instead expose every mount's tools under one endpoint.
+
+```ts
+  .addService({
+    id: 'material-tracing',
+    // ...
+    customResources: REGISTERED_CUSTOM_RESOURCES,
+    mcp: { name: 'material-tracing-server', version: '1.0.0' },
+  })
+```
 
 Each mount's config lives under its own entry in the harness process's
 `config.yaml`, in a top-level `services` array — `config` is the exact same

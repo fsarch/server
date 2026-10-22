@@ -23,6 +23,15 @@ export default defineConfig({
           '@nestjs/jwt',
           '@nestjs/swagger',
           '@nestjs/typeorm',
+          // Everything else that resolves `@nestjs/core`'s own classes
+          // (e.g. `ModuleRef`) must be inlined too, or it gets a second,
+          // non-inlined copy of @nestjs/core whose tokens don't match -
+          // only shows up once a test builds a full `FsArchAppBuilder` app.
+          '@nestjs/event-emitter',
+          '@nestjs/microservices',
+          '@nestjs/platform-express',
+          '@nestjs/schedule',
+          '@rekog/mcp-nest',
         ],
       },
       // Für CommonJS Module Unterstützung

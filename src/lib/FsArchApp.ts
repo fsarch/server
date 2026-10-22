@@ -8,13 +8,18 @@ import {
 } from "@nestjs/common";
 import { NestFactory, RouterModule } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import type { McpStrategy } from "@rekog/mcp-nest";
 import type { EntitySchema } from "typeorm";
 import { AuthModule } from "./auth/auth.module.js";
 import { AuthService } from "./auth/auth.service.js";
 import { AuthExceptionFilter } from "./auth/errors/AuthExceptionFilter.js";
 import { AuthGuard } from "./auth/guards/auth.guard.js";
+import { prefixCustomResourceRoutes } from "./custom-resource/custom-resource.module.js";
 import { TCustomResourceDefinition } from "./custom-resource/custom-resource.types.js";
-import { DatabaseModule, DatabaseModuleOptions } from "./database/database.module.js";
+import {
+  DatabaseModule,
+  DatabaseModuleOptions,
+} from "./database/database.module.js";
 import { FsarchModule } from "./fsarch.module.js";
 import { PinoLogger } from "./logger/pino-logger.service.js";
 import {
@@ -22,7 +27,7 @@ import {
   createMcpStrategy,
   DEFAULT_MCP_ENDPOINT,
 } from "./mcp/mcp.js";
-import { McpModuleOptions } from "./mcp/mcp.types.js";
+import { McpModuleOptions, ServiceMcpOptions } from "./mcp/mcp.types.js";
 import type { ServiceModule } from "./service-module.js";
 import { initializeTracing } from "./tracing/tracing.js";
 import { RolesGuard } from "./uac/guards/roles.guard.js";
@@ -57,6 +62,21 @@ export type ServiceMountDescriptor = {
   auth?: boolean;
   uac?: { roles: Array<string> };
   softDeletion?: boolean;
+  /**
+   * Mirrors `.addCustomResource()` for this mount: served at
+   * `/v1/<id>/.meta/custom-resources`. Written exactly as for standalone
+   * (`/v1/parts`); `apiRoutes` paths are rewritten to the mounted routes
+   * (`/v1/<id>/parts`) automatically, see `prefixRoutePath()`.
+   */
+  customResources?: Array<TCustomResourceDefinition>;
+  /**
+   * Mirrors `.enableMcp()` for this mount: its own MCP server at
+   * `/<id>` + `endpoint` (default `/<id>/.ai/mcp`), serving only this
+   * mount's `@McpController()` tools, behind this mount's auth guard.
+   * `name`/`version` default to `swagger.title`/`swagger.version`, then to
+   * `id`/the builder's version.
+   */
+  mcp?: ServiceMcpOptions;
 };
 
 export class FsArchAppBuilder {
@@ -250,11 +270,47 @@ export class FsArchAppBuilder {
       // prefix and Swagger's `include` scoping both key off this exact
       // class (see `createServiceModule()`'s doc comment for why it must be
       // fresh per mount, not shared), not the wrapper module below.
+      // Per-mount MCP server: its own guarded HTTP controller (declared
+      // inside the mount's module below, so it gets the mount's route
+      // prefix and `guards` like any other controller there) plus a
+      // strategy that only serves tools bound to this mount's server name.
+      // A process-wide `.enableMcp()` would instead pick up every mount's
+      // tools under one endpoint, behind the process-wide `AuthGuard` that
+      // a harness of independently-authenticated mounts doesn't have.
+      let mcpStrategy: McpStrategy | undefined;
+      const mountControllers: Array<Type<any>> = [];
+      const mcpServer = descriptor.mcp ? `mount:${descriptor.id}` : undefined;
+      if (descriptor.mcp && mcpServer) {
+        const mountMcpHttp = createMcpHttpController(
+          descriptor.mcp.endpoint ?? DEFAULT_MCP_ENDPOINT,
+        );
+        mountControllers.push(mountMcpHttp.controller);
+        mcpStrategy = createMcpStrategy({
+          ...descriptor.mcp,
+          name:
+            descriptor.mcp.name ?? descriptor.swagger?.title ?? descriptor.id,
+          version:
+            descriptor.mcp.version ??
+            descriptor.swagger?.version ??
+            this.info.version,
+          server: mcpServer,
+          transports: [mountMcpHttp.transport],
+        });
+      }
+
       const registeredServiceModule = descriptor.module.register({
         connectionName: descriptor.id,
         guards,
         imports: serviceModuleImports,
         deletion: !!descriptor.softDeletion,
+        controllers: mountControllers,
+        mcpServer,
+        customResources: descriptor.customResources
+          ? prefixCustomResourceRoutes(
+              descriptor.customResources,
+              descriptor.id,
+            )
+          : undefined,
       });
       const routedModule = registeredServiceModule.module as Type<any>;
 
@@ -263,7 +319,7 @@ export class FsArchAppBuilder {
       })
       class ServiceMountModule {}
 
-      return { wrapperModule: ServiceMountModule, routedModule };
+      return { wrapperModule: ServiceMountModule, routedModule, mcpStrategy };
     });
 
     @Module({
@@ -320,13 +376,8 @@ export class FsArchAppBuilder {
       process.env.ENABLE_SWAGGER_DOCS === "true";
 
     if (swaggerEnabled) {
-      for (const {
-        path,
-        title,
-        version,
-        description,
-        include,
-      } of this.swaggerOptions) {
+      for (const { path, title, version, description, include } of this
+        .swaggerOptions) {
         const config = new DocumentBuilder()
           .setTitle(title ?? this.info.name)
           .setDescription(description)
@@ -377,6 +428,17 @@ export class FsArchAppBuilder {
       });
       mcpStrategy.setHttpAdapter(app.getHttpAdapter());
       app.connectMicroservice({ strategy: mcpStrategy });
+    }
+
+    for (const { mcpStrategy } of mountedServiceModules) {
+      if (!mcpStrategy) {
+        continue;
+      }
+      mcpStrategy.setHttpAdapter(app.getHttpAdapter());
+      app.connectMicroservice({ strategy: mcpStrategy });
+    }
+
+    if (this.mcpOptions || mountedServiceModules.some((m) => m.mcpStrategy)) {
       // Must run before `app.listen()` so the MCP HTTP routes are mounted
       // before the server starts accepting connections.
       await app.startAllMicroservices();

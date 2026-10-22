@@ -11,7 +11,15 @@ import {
   TypeOrmModule,
 } from "@nestjs/typeorm";
 import { DataSource, EntitySchema } from "typeorm";
+import { CustomResourceController } from "./custom-resource/custom-resource.controller.js";
+import { validateCustomResources } from "./custom-resource/custom-resource.module.js";
+import {
+  CUSTOM_RESOURCE,
+  CustomResourceService,
+} from "./custom-resource/custom-resource.service.js";
+import type { TCustomResourceDefinition } from "./custom-resource/custom-resource.types.js";
 import { DeletionModule } from "./deletion/deletion.module.js";
+import { bindMcpControllerToServer, isMcpController } from "./mcp/mcp.js";
 
 export type ServiceModuleOptions = {
   entities: Array<Function | EntitySchema>;
@@ -72,6 +80,32 @@ export type ServiceModuleRegisterOptions = {
    * added - identical to today.
    */
   deletion?: boolean;
+  /**
+   * Extra controllers to declare in this particular registration on top of
+   * the module's own `controllers` - e.g. the per-mount MCP HTTP controller
+   * from `createMcpHttpController()`. Declared in the generated module
+   * itself (not in a wrapper) so `RouterModule`'s mount prefix and the
+   * `guards` above apply to them too.
+   */
+  controllers?: Array<Type<any>>;
+  /**
+   * Binds this module's `@McpController()` classes to the named MCP server
+   * `mcpServer` (see `bindMcpControllerToServer()`), so a per-mount MCP
+   * strategy created with that same `server` name serves exactly this
+   * mount's tools. Omitted (the default), MCP controllers are declared as-is
+   * and bound to whatever server they were declared for - identical to
+   * today.
+   */
+  mcpServer?: string;
+  /**
+   * Mirrors `.addCustomResource()` for this particular mount: serves these
+   * definitions from this module's own custom-resources controller (so at
+   * `/v1/<mount prefix>/.meta/custom-resources` - Nest puts the URI version
+   * in front of `RouterModule`'s prefix), behind this mount's `guards`.
+   * Served verbatim - rewriting `apiRoutes` paths to the mount's actual
+   * routes is the caller's job (see `prefixCustomResourceRoutes()`).
+   */
+  customResources?: Array<TCustomResourceDefinition>;
 };
 
 export type ServiceModule = {
@@ -129,9 +163,44 @@ export function createServiceModule(
   options: ServiceModuleOptions,
 ): ServiceModule {
   return {
-    register(registerOptions: ServiceModuleRegisterOptions = {}): DynamicModule {
-      if (registerOptions.guards?.length && options.controllers?.length) {
-        for (const controller of options.controllers) {
+    register(
+      registerOptions: ServiceModuleRegisterOptions = {},
+    ): DynamicModule {
+      const { mcpServer } = registerOptions;
+      const ownControllers = (options.controllers ?? []).map((controller) =>
+        mcpServer && isMcpController(controller)
+          ? bindMcpControllerToServer(controller, mcpServer)
+          : controller,
+      );
+
+      // Fresh subclass for the same reason as `bindMcpControllerToServer()`:
+      // the guards below are applied by mutating the class, and
+      // `CustomResourceController` itself is shared with every other mount
+      // and with standalone `.addCustomResource()` usage.
+      const customResourceControllers: Array<Type<any>> = [];
+      const customResourceProviders: Array<Provider> = [];
+      if (registerOptions.customResources?.length) {
+        validateCustomResources(registerOptions.customResources);
+        customResourceControllers.push(
+          class MountCustomResourceController extends CustomResourceController {},
+        );
+        customResourceProviders.push(
+          {
+            provide: CUSTOM_RESOURCE,
+            useValue: registerOptions.customResources,
+          },
+          CustomResourceService,
+        );
+      }
+
+      const controllers = [
+        ...ownControllers,
+        ...customResourceControllers,
+        ...(registerOptions.controllers ?? []),
+      ];
+
+      if (registerOptions.guards?.length) {
+        for (const controller of controllers) {
           UseGuards(...registerOptions.guards)(controller);
         }
       }
@@ -142,34 +211,36 @@ export function createServiceModule(
       const staticImports =
         typeof options.imports === "function"
           ? options.imports(registerOptions.connectionName)
-          : options.imports ?? [];
+          : (options.imports ?? []);
 
       // See the class-level doc comment for why named connections can't
       // just use `TypeOrmModule.forFeature(entities, connectionName)`
       // directly: unqualified `@InjectRepository(Entity)` call sites would
       // never match the connection-qualified token it registers under.
-      const repositoryProviders: Array<Provider> = registerOptions.connectionName
-        ? options.entities.map((entity) => ({
-            provide: getRepositoryToken(entity),
-            useFactory: (dataSource: DataSource) =>
-              dataSource.getRepository(entity as any),
-            inject: [getDataSourceToken(registerOptions.connectionName)],
-          }))
-        : [];
+      const repositoryProviders: Array<Provider> =
+        registerOptions.connectionName
+          ? options.entities.map((entity) => ({
+              provide: getRepositoryToken(entity),
+              useFactory: (dataSource: DataSource) =>
+                dataSource.getRepository(entity as any),
+              inject: [getDataSourceToken(registerOptions.connectionName)],
+            }))
+          : [];
 
       // Same reasoning as `repositoryProviders` above, but for services that
       // inject the `DataSource` itself via `@InjectDataSource()` (no second
       // arg) instead of going through a repository — that decorator also
       // always resolves the *default*-connection token.
-      const dataSourceProviders: Array<Provider> = registerOptions.connectionName
-        ? [
-            {
-              provide: getDataSourceToken(),
-              useFactory: (dataSource: DataSource) => dataSource,
-              inject: [getDataSourceToken(registerOptions.connectionName)],
-            },
-          ]
-        : [];
+      const dataSourceProviders: Array<Provider> =
+        registerOptions.connectionName
+          ? [
+              {
+                provide: getDataSourceToken(),
+                useFactory: (dataSource: DataSource) => dataSource,
+                inject: [getDataSourceToken(registerOptions.connectionName)],
+              },
+            ]
+          : [];
 
       const deletionImports: Array<DynamicModule> = registerOptions.deletion
         ? [
@@ -192,11 +263,12 @@ export function createServiceModule(
           ...deletionImports,
           ...(registerOptions.imports ?? []),
         ],
-        controllers: options.controllers ?? [],
+        controllers,
         providers: [
           ...(options.providers ?? []),
           ...repositoryProviders,
           ...dataSourceProviders,
+          ...customResourceProviders,
         ],
         exports: options.exports ?? [],
       };

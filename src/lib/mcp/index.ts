@@ -41,11 +41,14 @@ export {
   ToolScopes,
 } from "@rekog/mcp-nest";
 export {
+  bindMcpControllerToServer,
   createMcpHttpController,
   createMcpStrategy,
   DEFAULT_MCP_ENDPOINT,
+  isMcpController,
 } from "./mcp.js";
 export type {
   CreateMcpStrategyOptions,
   McpModuleOptions,
+  ServiceMcpOptions,
 } from "./mcp.types.js";

@@ -1,5 +1,10 @@
 export type { CustomResourceModuleOptions } from "./custom-resource.module.js";
-export { CustomResourceModule } from "./custom-resource.module.js";
+export {
+  CustomResourceModule,
+  prefixCustomResourceRoutes,
+  prefixRoutePath,
+  validateCustomResources,
+} from "./custom-resource.module.js";
 
 export {
   CUSTOM_RESOURCE,
