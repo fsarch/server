@@ -305,6 +305,7 @@ export class FsArchAppBuilder {
         deletion: !!descriptor.softDeletion,
         controllers: mountControllers,
         mcpServer,
+        routePrefix: descriptor.id,
         customResources: descriptor.customResources
           ? prefixCustomResourceRoutes(
               descriptor.customResources,

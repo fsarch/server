@@ -19,6 +19,7 @@ import {
 } from "./custom-resource/custom-resource.service.js";
 import type { TCustomResourceDefinition } from "./custom-resource/custom-resource.types.js";
 import { DeletionModule } from "./deletion/deletion.module.js";
+import { prefixGatewayProvider } from "./gateway-mount.js";
 import { bindMcpControllerToServer, isMcpController } from "./mcp/mcp.js";
 
 export type ServiceModuleOptions = {
@@ -106,6 +107,15 @@ export type ServiceModuleRegisterOptions = {
    * routes is the caller's job (see `prefixCustomResourceRoutes()`).
    */
   customResources?: Array<TCustomResourceDefinition>;
+  /**
+   * This mount's route prefix (the harness's `RouterModule` path). Only
+   * used for `@WebSocketGateway({ path })` providers, which `RouterModule`
+   * doesn't reach: their path is moved under the prefix as well (see
+   * `prefixGatewayProvider()`), so `/api/ws` is served at `/<prefix>/api/ws`
+   * and two mounts of the same service don't claim the same path. Omitted
+   * (the default), gateways keep their declared path - identical to today.
+   */
+  routePrefix?: string;
 };
 
 export type ServiceModule = {
@@ -265,7 +275,14 @@ export function createServiceModule(
         ],
         controllers,
         providers: [
-          ...(options.providers ?? []),
+          ...(registerOptions.routePrefix
+            ? (options.providers ?? []).map((provider) =>
+                prefixGatewayProvider(
+                  provider,
+                  registerOptions.routePrefix as string,
+                ),
+              )
+            : (options.providers ?? [])),
           ...repositoryProviders,
           ...dataSourceProviders,
           ...customResourceProviders,
